@@ -1,4 +1,4 @@
-# Prediction of cell penetrating peptides
+# Cyclic Cell Penetration Peptide prediction (CP2pred)
 
 ## Prepare environment
 
