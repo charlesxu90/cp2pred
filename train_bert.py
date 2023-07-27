@@ -8,10 +8,10 @@ from pathlib import Path
 from torch.utils.data import DataLoader
 
 from utils.utils import parse_config, load_model, log_GPU_info
-from datasets.dataset import load_data, UniDataset
-from datasets.tokenizer import SmilesTokenizer, AATokenizer, HELMTokenizer
-from models.bert import BERT
-from models.bert_trainer import BertTrainer
+from dataset.dataset import load_data, UniDataset
+from dataset.tokenizer import SmilesTokenizer, AATokenizer, HELMTokenizer
+from model.bert import BERT
+from model.bert_trainer import BertTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
