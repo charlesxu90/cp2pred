@@ -92,7 +92,11 @@ class BPEEncoder:
         """ string to integers """
         tokens = self.bpe(text).split(' ')
         # logger.info(f"tokens: {tokens}")
-        bpe_idx = [self.encoder[bpe_token] for bpe_token in tokens]
+        try:
+            bpe_idx = [self.encoder[bpe_token] for bpe_token in tokens]
+        except:
+            logger.info(f"tokens: {tokens}")
+            raise Exception
         return bpe_idx
 
     def decode(self, bpe_idx):
