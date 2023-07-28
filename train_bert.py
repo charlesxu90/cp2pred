@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 
 from utils.utils import parse_config, load_model, log_GPU_info
 from dataset.dataset import load_data, UniDataset
-from dataset.tokenizer import SmilesTokenizer, AATokenizer, HELMTokenizer
+from dataset.tokenizer import SmilesTokenizer, AATokenizer, HELMTokenizer, BPETokenizer
 from model.bert import BERT
 from model.bert_trainer import BertTrainer
 from torch.utils.data.distributed import DistributedSampler
@@ -49,6 +49,8 @@ def main(args, config):
         tokenizer = AATokenizer(max_len=config.data.max_len)
     elif config.data.type == 'helm':
         tokenizer = HELMTokenizer(max_len=config.data.max_len)
+    elif config.data.type == 'bpe':
+        tokenizer = BPETokenizer(bpe_path=config.data.bpe_path, max_len=config.data.max_len)
     else:
         raise Exception(f"Unknown data type: {config.data.type}")
     
