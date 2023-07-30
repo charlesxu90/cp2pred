@@ -1,2 +1,2 @@
-data: 'datasets/pretrain/merged/all.csv'
+data: 'data/pretrain/merged/all.csv'
 column: 'helm'

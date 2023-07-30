@@ -95,6 +95,7 @@ class BPEEncoder:
         try:
             bpe_idx = [self.encoder[bpe_token] for bpe_token in tokens]
         except:
+            logger.info(f"text: {text}")
             logger.info(f"tokens: {tokens}")
             raise Exception
         return bpe_idx
@@ -209,15 +210,19 @@ def train(str_list, save_dir='./bpe'):
 
     return encoder
 
-def test(text, save_dir='./bpe'):
-    encoder = BPEEncoder.load(save_dir)
-    logger.info(f"text: {text}")
-    idx = encoder.encode(text)
-    logger.info(f"idx: {idx}")
-    text2 = encoder.decode(idx)
-    logger.info(f"text2: {text2}")
+def test(save_dir='./bpe'):
 
-    assert text == text2, "text and decoded text should be the same"
+    encoder = BPEEncoder.load(save_dir)
+    texts = ['PEPTIDE2{[Abu].[Sar].[meL].V.[meL].A.[dA].[meL].[meL].[meV].[Me_Bmt(E)]}$PEPTIDE2,PEPTIDE2,1:R1-11:R2$$$',
+             'PEPTIDE1{F.E.G.D.T.L.V..N.R}$$$$',]
+    for text in texts:
+        logger.info(f"text: {text}")
+        idx = encoder.encode(text)
+        logger.info(f"idx: {idx}")
+        text2 = encoder.decode(idx)
+        logger.info(f"text2: {text2}")
+
+        assert text == text2, "text and decoded text should be the same"
 
 
 def main(args, config):
@@ -226,9 +231,9 @@ def main(args, config):
     data = df_data[config.column].tolist()
 
     # train tokenizer
-    train(data, args.output_dir)
+    # train(data, args.output_dir)
 
-    test(data[0], args.output_dir)
+    test(args.output_dir)
 
 
 if __name__ == '__main__':
