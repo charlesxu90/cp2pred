@@ -6,7 +6,6 @@ import torch
 import torch.nn.functional as F
 import yaml
 from easydict import EasyDict
-from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef, roc_auc_score
 import logging
 
 logger = logging.getLogger(__name__)
@@ -70,6 +69,8 @@ def log_GPU_info():
     logger.info(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')
 
 def get_metrics(y_hat, y_test, print_metrics=True):
+    from sklearn.metrics import accuracy_score, recall_score, matthews_corrcoef, roc_auc_score
+
     # logger.debug(f'y_hat: {y_hat}, y_test: {y_test}')
     acc = accuracy_score(y_test, y_hat)
     sn = recall_score(y_test, y_hat)
@@ -92,3 +93,17 @@ class ContrastiveLoss(torch.nn.Module):
         loss = torch.mean((1 - label) * torch.pow(dist, 2) + 
                           (label) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2))
         return loss
+
+def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from scipy import stats
+    mae = mean_absolute_error(y_test, y_hat)
+    mse = mean_squared_error(y_test, y_hat)
+    r2 = r2_score(y_test, y_hat)
+    spearman = stats.spearmanr(y_test, y_hat)
+    pearson = stats.pearsonr(y_test, y_hat)
+    
+    if print_metrics:
+        print(f'MAE \t MSE \t R2 \t Spearman \t Pearson')
+        print(f'{mae:.3f}\t{mse:.3f}\t{r2:.3f}\t{spearman.correlation:.3f}\t{pearson[0]:.3f}')
+    return mae, mse, r2, spearman.correlation, pearson[0]

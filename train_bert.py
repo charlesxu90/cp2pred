@@ -35,7 +35,7 @@ def main(args, config):
     if is_main_process():
         log_GPU_info()
     
-    train_data, valid_data = load_data(config.data.input_path, col_name=config.data.col_name,)
+    train_data, valid_data = load_data(config.data.input_path, col_name=config.data.feat_col,)
     train_set, test_set = UniDataset(train_data), UniDataset(valid_data)
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
     train_dataloader = DataLoader(train_set, batch_size=config.data.batch_size, sampler=train_sampler, num_workers=config.data.num_workers, pin_memory=True)
@@ -45,8 +45,6 @@ def main(args, config):
 
     if config.data.type == 'smiles':
         tokenizer = SmilesTokenizer(max_len=config.data.max_len)
-    elif config.data.type == 'aa_seq':
-        tokenizer = AATokenizer(max_len=config.data.max_len)
     elif config.data.type == 'helm':
         tokenizer = HELMTokenizer(max_len=config.data.max_len)
     elif config.data.type == 'bpe':

@@ -28,8 +28,7 @@ class TaskTrainer:
         self.distributed = distributed
         self.model_type = model_type
 
-        self.ctl_loss = ContrastiveLoss()
-        self.bce_loss = nn.CrossEntropyLoss()
+        self.task_loss = nn.MSELoss()
     
     def fit(self, train_loader, test_loader=None, val_loader=None, save_ckpt=True):
         model = self.model
@@ -45,21 +44,7 @@ class TaskTrainer:
             seq, label = batch
             label = label.to(self.device)
             seq_pred, seq_embd  = model.forward(seq)
-            loss = self.bce_loss(seq_pred, label)
-            return loss
-        
-        def run_siamese_forward(batch):
-            seq1, seq2, label1, label2, label = batch
-            label1, label2, label = label1.to(self.device), label2.to(self.device), label.to(self.device)
-            seq1_pred, seq1_embd  = model.forward(seq1)
-            seq2_pred, seq2_embd  = model.forward(seq2)
-            cl_loss = self.ctl_loss(seq1_embd, seq2_embd, label)
-
-            seq1_loss = self.bce_loss(seq1_pred, label1)
-            seq2_loss = self.bce_loss(seq2_pred, label2)
-                            
-            loss = 100*(seq1_loss + seq2_loss) + cl_loss
-            # logger.info(f"epoch {epoch + 1}: seq1 loss {seq1_loss.item():.5f}, seq2 loss {seq2_loss.item():.5f}, cl loss {cl_loss.item():.5f}, total loss {loss.item():.5f}")
+            loss = self.task_loss(seq_pred.squeeze(), label.float())
             return loss
 
         def run_epoch(split):
@@ -70,17 +55,16 @@ class TaskTrainer:
                 loader.sampler.set_epoch(epoch)   # for distributed parallel
 
             losses = []
-            # pbar = tqdm(enumerate(loader), total=len(loader)) if is_train else enumerate(loader)
             pbar = enumerate(loader)
             for it, batch in pbar:
                 with torch.set_grad_enabled(is_train):
                     if self.device == 'cuda':
                         with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                            loss = run_siamese_forward(batch) if self.model_type == 'siamese' else run_bert_forward(batch)
+                            loss = run_bert_forward(batch)
                             loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                             losses.append(loss.item())
                     else:
-                        loss = run_siamese_forward(batch) if self.model_type == 'siamese' else run_bert_forward(batch)
+                        loss = run_bert_forward(batch)
                     losses.append(loss.item())
 
                 if is_train:

@@ -157,16 +157,17 @@ class BPETokenizer(Tokenizer):
     UNK = '<UNK>'
     CLS = '<CLS>'
 
-    def __init__(self, bpe_path='results/helm_bpe', max_len=100):
+    def __init__(self, bpe_path='results/helm_bpe', max_len=100, cls=False):
         super().__init__()
         self.bpe_encoder = BPEEncoder.load(bpe_path)
         self.max_len = max_len
+        self.cls = False
 
     def tokenize(self, seqs):
         batch_size = len(seqs)
         idx_matrix = torch.zeros((batch_size, self.max_len))
         for i, seq in enumerate(seqs):
-            enc_seq = self.BEGIN + seq + self.END
+            enc_seq = self.BEGIN + seq + self.END if not self.cls else self.CLS + self.BEGIN + seq + self.END
             enc_idx = self.bpe_encoder.encode(enc_seq)
             if len(enc_idx) > self.max_len:
                 idx_matrix[i, :self.max_len] = torch.tensor(enc_idx[:self.max_len])
