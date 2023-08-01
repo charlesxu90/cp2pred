@@ -210,11 +210,11 @@ def train(str_list, save_dir='./bpe'):
 
     return encoder
 
-def test(save_dir='./bpe'):
+def test(texts, save_dir='./bpe'):
 
     encoder = BPEEncoder.load(save_dir)
-    texts = ['PEPTIDE2{[Abu].[Sar].[meL].V.[meL].A.[dA].[meL].[meL].[meV].[Me_Bmt(E)]}$PEPTIDE2,PEPTIDE2,1:R1-11:R2$$$',
-             'PEPTIDE1{F.E.G.D.T.L.V..N.R}$$$$',]
+    # texts = ['PEPTIDE2{[Abu].[Sar].[meL].V.[meL].A.[dA].[meL].[meL].[meV].[Me_Bmt(E)]}$PEPTIDE2,PEPTIDE2,1:R1-11:R2$$$',
+    #          'PEPTIDE1{F.E.G.D.T.L.V..N.R}$$$$',]
     for text in texts:
         logger.info(f"text: {text}")
         idx = encoder.encode(text)
@@ -231,9 +231,9 @@ def main(args, config):
     data = df_data[config.column].tolist()
 
     # train tokenizer
-    # train(data, args.output_dir)
+    train(data, args.output_dir)
 
-    test(args.output_dir)
+    test(data[:2], args.output_dir)
 
 
 if __name__ == '__main__':
