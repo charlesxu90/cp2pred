@@ -13,4 +13,4 @@
 module load gcc/11.1.0
 
 # HELM BERT with basic tokenizer
-torchrun --nproc_per_node=2 train_bert.py --config configs/train_helms_bert.yaml --output_dir results/train_helms_bert --debug
+torchrun --nproc_per_node=2 train_bert.py --config configs/train_smi_bpe_bert.yaml --output_dir results/train_smi_bpe_bert --debug
