@@ -12,5 +12,5 @@
 
 module load gcc/11.1.0
 
-config_name='train_smi_bert'
+config_name='train_helms_bert'
 torchrun --nproc_per_node=2 train_bert.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
