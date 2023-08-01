@@ -1,0 +1,23 @@
+data: 
+  # type: 'helm'                    # data type, 'smiles', 'helm', 'aa_seq' or 'bpe'
+  type: 'bpe'                       # data type, 'smiles', 'helm', 'aa_seq' or 'bpe'
+  input_path: 'data/pretrain/merged/'  # pretrain data folder, contain two files: train.csv and val.csv
+  feat_col: 'smi'                  
+  max_len: 1452                     # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  batch_size: 480                   # *batch size, default 1600; distributed 800, 26min; apex: 1000, 13min; amp: 1040, 12min
+  num_workers: 2                    # number of workers for data loading\
+  bpe_path: 'results/smi_bpe'       # path to save bpe model
+
+model:  # Model params
+  context_length: 512               # default 600
+  width: 512
+  n_heads: 8
+  n_layers: 6
+  mlm_probability: 0.15             # masked probability in mlm
+
+train:  # Training params
+  max_epochs: 5                     # *total number of epochs
+  learning_rate: 0.00005            # *learning rate
+  device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
+

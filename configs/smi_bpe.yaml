@@ -1,0 +1,2 @@
+data: 'data/pretrain/merged/all.csv'
+column: 'smi'
