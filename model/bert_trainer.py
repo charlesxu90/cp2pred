@@ -13,6 +13,37 @@ from utils.dist import is_dist_avail_and_initialized, is_main_process
 
 logger = logging.getLogger(__name__)
 
+class LossAnomalyDetector:
+    def __init__(self, n_min=5, n_max=20, max_consecutive=5, std_fold=5):
+        self.n_max = n_max
+        self.n_min = n_min
+        self.loss_memory = []
+        self.max_consecutive = max_consecutive
+        self.n_anomaly = 0
+        self.std_fold = std_fold
+    
+    def __call__(self, loss):
+        if len(self.loss_memory) < self.n_min: # Do not report anomaly if less than 5 losses are recorded
+            self.loss_memory.append(loss)
+            self.n_anomaly = 0
+            return False
+        
+        mean, std = np.mean(self.loss_memory), np.std(self.loss_memory)
+        
+        if loss > mean + self.std_fold*std or loss < mean - self.std_fold*std:
+            self.n_anomaly += 1
+            if self.n_anomaly >= self.max_consecutive:  # Do not report more than 5 consecutive anomalies
+                self.n_anomaly = 0
+                return False
+            return True  # Report anomaly
+        
+        self.loss_memory.append(loss)
+        self.n_anomaly = 0
+
+        if len(self.loss_memory) >= self.n_max: # Keep the memory size to be 20
+            self.loss_memory.pop(0)
+        return False
+
 
 class BertTrainer:
 
@@ -26,6 +57,7 @@ class BertTrainer:
         self.device = device
         self.n_epochs = max_epochs
         self.use_amp = use_amp
+        self.loss_anomaly_detector = LossAnomalyDetector()
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -56,6 +88,10 @@ class BertTrainer:
                     losses.append(loss.item())
 
                 if is_train:
+                    if self.loss_anomaly_detector(loss.item()):
+                        logger.info(f"Anomaly loss detected at epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                        del loss, x
+                        continue  # Skip the current iteration if the loss is an anomaly
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
                     optimizer.step()
@@ -69,7 +105,7 @@ class BertTrainer:
 
             loss = float(np.mean(losses))
             logger.info(f'{split}, epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            self.writer.add_scalar('epoch_loss', loss, epoch + 1)
+            self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
 
             return loss
 
