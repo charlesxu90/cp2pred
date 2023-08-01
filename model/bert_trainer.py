@@ -14,21 +14,23 @@ from utils.dist import is_dist_avail_and_initialized, is_main_process
 logger = logging.getLogger(__name__)
 
 class LossAnomalyDetector:
-    def __init__(self, n_min=5, n_max=20, max_consecutive=5, std_fold=5):
+    def __init__(self, n_min=10, n_max=20, max_consecutive=5, std_fold=10, n_ignore=2):
         self.n_max = n_max
         self.n_min = n_min
         self.loss_memory = []
         self.max_consecutive = max_consecutive
         self.n_anomaly = 0
         self.std_fold = std_fold
+        self.n_ignore = n_ignore  # Number of values to ignore while calculating mean and std
     
     def __call__(self, loss):
-        if len(self.loss_memory) < self.n_min: # Do not report anomaly if less than 5 losses are recorded
+        if len(self.loss_memory) < self.n_min: # Do not report anomaly if less than 10 losses are recorded
             self.loss_memory.append(loss)
             self.n_anomaly = 0
             return False
         
-        mean, std = np.mean(self.loss_memory), np.std(self.loss_memory)
+        loss_mem = sorted(self.loss_memory)[self.n_ignore:len(self.loss_memory)-self.n_ignore]
+        mean, std = np.mean(loss_mem), np.std(loss_mem)
         
         if loss > mean + self.std_fold*std or loss < mean - self.std_fold*std:
             self.n_anomaly += 1
@@ -40,7 +42,7 @@ class LossAnomalyDetector:
         self.loss_memory.append(loss)
         self.n_anomaly = 0
 
-        if len(self.loss_memory) >= self.n_max: # Keep the memory size to be 20
+        if len(self.loss_memory) > self.n_max: # Keep the memory size to be 20
             self.loss_memory.pop(0)
         return False
 
