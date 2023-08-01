@@ -30,10 +30,21 @@ class Tokenizer(ABC):
         idx_matrix = torch.zeros((batch_size, self.max_len))
         for i, seq in enumerate(seqs):
             enc_seq = self.BEGIN + self.preprocess_str(seq) + self.END
+            
+            k = 0
             for j in range(self.max_len):
-                if j >= len(enc_seq):
+                if k >= len(enc_seq):
                     break
-                idx_matrix[i, j] = self.char_idx[enc_seq[j]]
+                if enc_seq[k] == '<': # Handel PAD, BEGIN, END, MASK
+                    if enc_seq[k:k+5] == '<PAD>' or enc_seq[k:k+5] == '<SOS>' or enc_seq[k:k+5] == '<EOS>':
+                        idx_matrix[i, j] = self.char_idx[enc_seq[k:k+5]]
+                        k = k + 5
+                    elif enc_seq[k:k+5] == '<MASK>':
+                        idx_matrix[i, j] = self.char_idx[self.MASK]
+                        k = k + 6
+                else:
+                    idx_matrix[i, j] = self.char_idx[enc_seq[k]]
+                    k = k + 1
 
         return idx_matrix.to(torch.int64)
 
