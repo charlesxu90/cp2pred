@@ -9,7 +9,7 @@ from utils.utils import parse_config, load_model, get_metrics, get_regresssion_m
 from model.bert import BERT
 # from model.molclip import MolCLIP
 # from model.pbart import PepBART
-from dataset.tokenizer import SmilesTokenizer, AATokenizer, BPETokenizer
+from dataset.tokenizer import SmilesTokenizer, AATokenizer, BPETokenizer, HELMTokenizer
 from torch.distributed.elastic.multiprocessing.errors import record
 
 
@@ -19,8 +19,8 @@ logger = logging.getLogger(__name__)
 def load_bert_model(ckpt, config, device='cuda', model_type='smi_bert'):
     if model_type == 'smi_bert':
         tokenizer = SmilesTokenizer(max_len=config.data.max_len)
-    elif model_type == 'aa_bert':
-        tokenizer = AATokenizer(max_len=config.data.max_len)
+    elif model_type == 'helm_bert':
+        tokenizer = HELMTokenizer(max_len=config.data.max_len)
     elif config.data.type == 'bpe':
         tokenizer = BPETokenizer(bpe_path=config.data.bpe_path, max_len=config.data.max_len)
     else:

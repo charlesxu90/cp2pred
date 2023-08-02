@@ -7,6 +7,7 @@ data:
   batch_size: 240                   # *batch size, default 1600; distributed 800, 26min; apex: 1000, 13min; amp: 1040, 12min
   num_workers: 2                    # number of workers for data loading\
   bpe_path: 'results/smi_bpe'       # path to save bpe model
+  target_col: 'score'
 
 model:  # Model params
   context_length: 512               # default 600
