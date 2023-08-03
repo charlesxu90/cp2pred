@@ -26,8 +26,11 @@ def load_bert_model(ckpt, config, device='cuda', model_type='smi_bert'):
     else:
         raise ValueError(f'Invalid model_type: {model_type}')
 
-    model = BERT(tokenizer, **config.model)
-    model = load_model(model, ckpt, device)
+    model = BERT(tokenizer, **config.model).to(device)
+    try:
+        model = load_model(model, ckpt, device)
+    except:
+        logger.info(f"loading  ckpt {ckpt} failed!")
     model.eval()
     return model, device
 

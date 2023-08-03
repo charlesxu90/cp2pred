@@ -260,18 +260,22 @@ def restore_unused_rgroup(monomer_smis, monomer_r_groups, monomer_links):
     return monomer_smis
 
 
-df_monomers = pd.read_csv('data/pretrain/monomer_library.csv')
+def get_monomer_dicts():
+    df_monomers = pd.read_csv('data/pretrain/monomer_library.csv')
 
-monomers2smi_dict = {}
-monomers2r_groups_dict = {}
-for index, row in df_monomers.iterrows():
-    smi = get_smi_from_cxsmiles(row['CXSMILES'])
-    monomers2smi_dict[row['Symbol']] = smi
-    monomers2r_groups_dict[row['Symbol']] = {}
-    for r_group in ['R1', 'R2', 'R3']:
-        if row[r_group] != '-':
-            monomers2r_groups_dict[row['Symbol']][r_group] = row[r_group]
+    monomers2smi_dict = {}
+    monomers2r_groups_dict = {}
+    for index, row in df_monomers.iterrows():
+        smi = get_smi_from_cxsmiles(row['CXSMILES'])
+        monomers2smi_dict[row['Symbol']] = smi
+        monomers2r_groups_dict[row['Symbol']] = {}
+        for r_group in ['R1', 'R2', 'R3']:
+            if row[r_group] != '-':
+                monomers2r_groups_dict[row['Symbol']][r_group] = row[r_group]
+    
+    return monomers2smi_dict, monomers2r_groups_dict
 
+monomers2smi_dict, monomers2r_groups_dict = get_monomer_dicts()
 
 def cyclize_linpep_from_helm(linear_helm, cyclic_link):
     monomer_list = linear_helm[1:-1].replace('[', '').replace(']', '').split('.')

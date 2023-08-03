@@ -20,5 +20,6 @@
 
 # python eval_pretrain.py --config configs/train_smi_bpe_bert_test.yaml  --ckpt_dir results/train_smi_bpe_bert/ --clf xgb --model_type bpe
 
-python eval_pretrain.py --config configs/train_helms_bpe_bert_test.yaml  --ckpt_dir results/train_helms_bert/ --clf xgb --model_type helm_bert
+# python eval_pretrain.py --config configs/train_helms_bert_test.yaml  --ckpt_dir results/train_helms_bert/ --clf xgb --model_type helm_bert
 
+python eval_pretrain.py --config configs/train_smi_bert_test.yaml  --ckpt_dir results/train_smi_bert/ --clf xgb --model_type smi_bert
