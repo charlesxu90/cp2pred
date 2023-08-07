@@ -10,4 +10,4 @@
 #SBATCH --error=log-%x-slurm-%j.err
 ## SBATCH --reservation=v100
 
-srun --resv-ports=1 .script/tune_params.srun
+srun --resv-ports=1 ./script/tune_params.srun
