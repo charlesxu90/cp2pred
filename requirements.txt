@@ -7,3 +7,5 @@ torchmetrics
 accelerate
 xgboost
 fair-esm
+nni
+hyperopt

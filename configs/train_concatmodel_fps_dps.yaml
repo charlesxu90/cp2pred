@@ -7,10 +7,10 @@ data:
   target_col: 'score'
 
 model:
-  mlp_hid_size: '256,128,64,32'
+  mlp_hid_size: '1024,128,1024,256'
 
 train:  # Training params
-  max_epochs: 1000                  # *total number of epochs
-  learning_rate: 0.001              # *learning rate
+  max_epochs: 100                   # *total number of epochs
+  learning_rate: 0.005              # *learning rate
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training

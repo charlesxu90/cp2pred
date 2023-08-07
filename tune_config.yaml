@@ -1,0 +1,33 @@
+searchSpace:
+  l1_dim: 
+    _type: choice
+    _value: [16, 32, 64, 128, 256, 512, 1024]
+  l2_dim: 
+    _type: choice
+    _value: [16, 32, 64, 128, 256, 512, 1024]
+  l3_dim: 
+    _type: choice
+    _value: [16, 32, 64, 128, 256, 512, 1024]
+  l4_dim: 
+    _type: choice
+    _value: [16, 32, 64, 128, 256]
+  lr: 
+    _type: loguniform
+    _value: [0.0000001, 0.1]
+
+trialCommand: python tune_hparams.py --config configs/train_concatmodel_fps_dps.yaml
+trialCodeDirectory: ./
+trialGpuNumber: 2
+trialConcurrency: 2
+
+maxExperimentDuration: 24h
+maxTrialNumber: 100
+maxTrialNumPerGpu: 4
+tuner:
+  name: Anneal
+  classArgs:
+    optimize_mode: maximize
+  
+trainingService:
+  platform: local
+  useActiveGpu: True

@@ -32,7 +32,7 @@
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug
 
-config_name='train_concatmodel_dps'
+# config_name='train_concatmodel_dps'
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug
 
@@ -44,14 +44,18 @@ config_name='train_concatmodel_dps'
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug --classification
 
-config_name='train_concatmodel_fps_smi'
+# config_name='train_concatmodel_fps_smi'
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/bak/${config_name}.yaml --ckpt_dir results/${config_name}/ckpt/ --debug --classification
 
-config_name='train_concatmodel_dps_smi'
+# config_name='train_concatmodel_dps_smi'
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug
 
-config_name='train_concatmodel_fps_dps_smi'
+# config_name='train_concatmodel_fps_dps_smi'
 # python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug
+
+config_name='train_concatmodel_fps_dps'
+python train_cp2pred.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
+# python eval_cp2pred.py --config configs/${config_name}.yaml --ckpt_dir results/${config_name} --debug --classification
