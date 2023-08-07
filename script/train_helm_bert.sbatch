@@ -10,6 +10,7 @@
 #SBATCH --error=log-%x-slurm-%j.err
 #SBATCH --reservation=A100
 
+conda activate /home/xux/work/pep-pred/env
 module load gcc/11.1.0
 
 config_name='train_helms_bert'
