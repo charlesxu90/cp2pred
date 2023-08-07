@@ -1,0 +1,16 @@
+data: 
+  input_path: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
+  max_len: 40                       # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  batch_size: 60                   
+  num_workers: 2                    # number of workers for data loading
+  feat_names: 'fps,smi_bert'                 #'fps,monomer_dps,smi_bert,2dps'
+  target_col: 'score'
+
+model:
+  mlp_hid_size: '256,128,64,32'
+
+train:  # Training params
+  max_epochs: 3000                  # *total number of epochs
+  learning_rate: 0.001              # *learning rate
+  device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
