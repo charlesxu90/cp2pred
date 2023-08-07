@@ -1,19 +1,55 @@
 import pandas as pd
+import numpy as np
 from torch.utils.data import Dataset
 from utils.utils import get_path
 import logging
 import torch
 
+np.seterr(divide='ignore', invalid='ignore')
 logger = logging.getLogger(__name__)
 
 
 def load_data(data_path, col_name='SMILES'):
-    col_names = col_name.split(',') # for cross modal dataset
+    col_names = col_name.split(',')
     
     train_data = pd.read_csv(get_path(data_path, 'train.csv'))[col_names].values
     valid_data = pd.read_csv(get_path(data_path, 'test.csv'))[col_names].values
     return train_data, valid_data
 
+def load_feat_data(data_path, feat_names='fps,monomer_dps', target_col='score'):
+
+    df_train = pd.read_csv(get_path(data_path, 'train.csv'))
+    df_test = pd.read_csv(get_path(data_path, 'test.csv'))
+    y_train = df_train[target_col].values
+    y_test = df_test[target_col].values
+
+    features = feat_names.split(',')
+    
+    X_train_features = []
+    X_test_features = []
+    for feat in features:
+        try:
+            logger.debug(f"Loading feature: {feat}")
+            X_train = np.load(get_path(data_path, f'X_train_{feat}.npy'))
+            X_test = np.load(get_path(data_path, f'X_test_{feat}.npy'))
+            if 'dps' in feat:
+                # min-max normalize
+                X_train = (X_train - np.min(X_train, axis=0)) / (np.max(X_train, axis=0) - np.min(X_train, axis=0))
+                X_test = (X_test - np.min(X_test, axis=0)) / (np.max(X_test, axis=0) - np.min(X_test, axis=0))
+                
+                # drop nan columns
+                col_idx = np.isnan(X_train).any(axis=0) + np.isnan(X_test).any(axis=0)
+                X_train = X_train[:, ~col_idx]
+                X_test = X_test[:, ~col_idx]
+            X_train_features.append(X_train)
+            X_test_features.append(X_test)
+        except:
+            raise ValueError(f'Feature {feat} not supported')
+
+    X_train = np.concatenate(X_train_features, axis=1)
+    X_test = np.concatenate(X_test_features, axis=1)
+    logger.info(f"X_train shape: {X_train.shape}, X_test shape: {X_test.shape}")
+    return list(zip(X_train, y_train)), list(zip(X_test, y_test))
 
 class UniDataset(Dataset):
     def __init__(self, dataset):
@@ -53,11 +89,9 @@ class TaskDataset(Dataset):
         return self.len
 
     def __getitem__(self, idx):
-        # print(f'rank {torch.distributed.get_rank()}, fetch sample {idx}')
-
         item = self.dataset[idx]
         [item, prop] = item
-        # logger.debug(f'TaskDataset: {item}, {prop}')
+        # logger.debug(f'TaskDataset: {item.shape}, {prop}')
         return item, prop
     
 

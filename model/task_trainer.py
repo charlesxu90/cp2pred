@@ -1,14 +1,12 @@
 import os
 import logging
-import time
 from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, time_since, get_metrics, ContrastiveLoss
-from utils.dist import is_dist_avail_and_initialized, is_main_process
-
+from utils.utils import save_model, get_regresssion_metrics
+import torch.nn.functional as F
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TaskTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
-                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='siamese'):
+                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, high_threshold=-6):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -26,9 +24,9 @@ class TaskTrainer:
         self.n_epochs = max_epochs
         self.use_amp = use_amp
         self.distributed = distributed
-        self.model_type = model_type
-
-        self.task_loss = nn.MSELoss()
+        self.mse_loss = nn.MSELoss()
+        self.high_threshold = high_threshold
+        self.bce_loss = nn.BCEWithLogitsLoss()
     
     def fit(self, train_loader, test_loader=None, val_loader=None, save_ckpt=True):
         model = self.model
@@ -40,12 +38,15 @@ class TaskTrainer:
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
         
-        def run_bert_forward(batch):
-            seq, label = batch
-            label = label.to(self.device)
-            seq_pred, seq_embd  = model.forward(seq)
-            loss = self.task_loss(seq_pred.squeeze(), label.float())
-            return loss
+        def run_forward(batch):
+            feat, target = batch
+            feat, target = feat.to(self.device), target.to(self.device)
+            output  = model.forward(feat.float())
+            mse_loss = self.mse_loss(output[:, 0], target.float())
+            target_label = target >= self.high_threshold
+            output_label = output[:, 0] >= self.high_threshold
+            bce_loss = self.bce_loss(output_label.float(), target_label.float())
+            return mse_loss + bce_loss
 
         def run_epoch(split):
             is_train = split == 'train'
@@ -60,11 +61,11 @@ class TaskTrainer:
                 with torch.set_grad_enabled(is_train):
                     if self.device == 'cuda':
                         with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                            loss = run_bert_forward(batch)
+                            loss = run_forward(batch)
                             loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                             losses.append(loss.item())
                     else:
-                        loss = run_bert_forward(batch)
+                        loss = run_forward(batch)
                     losses.append(loss.item())
 
                 if is_train:
@@ -80,10 +81,10 @@ class TaskTrainer:
 
         for epoch in range(self.n_epochs):
             train_loss = run_epoch('train')
-            if test_loader is not None and is_main_process():
+            if test_loader is not None:
                 test_loss = run_epoch('test')
-            if val_loader is not None and is_main_process() and not self.distributed:
-                self._eval_model(val_loader, epoch)
+            # if val_loader is not None and not self.distributed:
+            #     self._eval_model(val_loader, epoch)
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             # save model in each epoch
@@ -99,31 +100,26 @@ class TaskTrainer:
         """
         base_name = f'model_{info}_{valid_loss:.3f}'
         # logger.info(f'Save model {base_name}')
-        if not is_dist_avail_and_initialized() or is_main_process():  # for distributed parallel
-            save_model(self.model, base_dir, base_name)
+        save_model(self.model, base_dir, base_name)
     
     def predict(self, X_test):
         with torch.set_grad_enabled(False):
-            output, _ = self.model.forward(X_test)
-            y_hat = output.squeeze()
-            y_hat = y_hat.argmax(axis=1)
-            return y_hat
+            y_hat = self.model.forward(X_test.float())
+            return y_hat.squeeze()
 
     def _eval_model(self, val_loader, epoch):
         y_test = []
         y_test_hat = []
 
         for x, y in val_loader:
+            x, y = x.to(self.device), y.to(self.device)
             y_hat = self.predict(x)
-            logger.debug(f'y_hat: {y_hat.shape}, y: {y.shape}')
             y_test_hat.append(y_hat.cpu().numpy())
             y_test.append(y.cpu().numpy())
 
         y_test = np.concatenate(y_test, axis=0)
         y_test_hat = np.concatenate(y_test_hat, axis=0)
-        logger.debug(f"y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}")
-        acc, sn, sp, mcc, auroc = get_metrics(y_test_hat, y_test, print_metrics=False)
-        logger.info(f'eval, epoch: {epoch + 1}/{self.n_epochs}, acc: {100*acc:.2f}, sn: {100*sn:.2f}, sp: {100*sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-        self.writer.add_scalar('mcc', mcc, epoch + 1)
-        logger.debug('eval finished')
+        mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
+        logger.info(f'eval, epoch: {epoch + 1}/{self.n_epochs}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
+        self.writer.add_scalar('spearman', spearman, epoch + 1)
 
