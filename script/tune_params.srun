@@ -14,4 +14,5 @@ ssh -L ${PORT}:${IBEX_NODE}:${PORT} ${KAUST_USER}@glogin.ibex.kaust.edu.sa
 
 " >&2
 
-nnictl create --config tune_config.yaml -p ${PORT}
+# nnictl create --config tune_config.yaml -p ${PORT}
+jupyter-lab --no-browser --port=${PORT} --ip=${IBEX_NODE}
