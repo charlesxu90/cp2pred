@@ -17,14 +17,15 @@ searchSpace:
 
 trialCommand: python tune_hparams.py --config configs/train_concatmodel_fps_dps.yaml
 trialCodeDirectory: ./
-trialGpuNumber: 2
-trialConcurrency: 2
+trialGpuNumber: 1
+trialConcurrency: 4
 
 maxExperimentDuration: 24h
 maxTrialNumber: 100
-maxTrialNumPerGpu: 4
+experimentWorkingDirectory: ./nni_experiments
+
 tuner:
-  name: Anneal
+  name: TPE   #Anneal
   classArgs:
     optimize_mode: maximize
   
@@ -32,4 +33,3 @@ trainingService:
   platform: local
   useActiveGpu: True
 
-experimentWorkingDirectory: ./
