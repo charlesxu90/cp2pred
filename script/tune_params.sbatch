@@ -10,4 +10,6 @@
 #SBATCH --error=log-%x-slurm-%j.err
 ## SBATCH --reservation=v100
 
-srun --resv-ports=1 ./script/tune_params.srun
+module load gcc/11.1.0
+nnictl create --config tune_config.yaml -p 8080
+# srun --resv-ports=1 ./script/tune_params.srun
