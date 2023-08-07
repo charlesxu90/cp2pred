@@ -10,7 +10,6 @@
 #SBATCH --error=log-%x-slurm-%j.err
 ## SBATCH --reservation=v100
 
-conda activate /home/xux/work/pep-pred/env
 module load gcc/11.1.0
 
 nnictl create --config tune_config.yaml -p 8081
