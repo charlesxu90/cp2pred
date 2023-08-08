@@ -34,5 +34,6 @@ Then copy the link provided by your web-server and replace the hostname with loc
 # launch jupyter server
 # jupyter-lab --no-browser --port=${port} --port-retries=0  --ip=${node}.ibex.kaust.edu.sa
 
+# launch nni server
 nnictl create --config tune_config.yaml -p ${port}
 
