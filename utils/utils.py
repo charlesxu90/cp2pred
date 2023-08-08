@@ -107,3 +107,18 @@ def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
         print(f'MAE \t MSE \t R2 \t Spearman \t Pearson')
         print(f'{mae:.3f}\t{mse:.3f}\t{r2:.3f}\t{spearman.correlation:.3f}\t{pearson[0]:.3f}')
     return mae, mse, r2, spearman.correlation, pearson[0]
+
+
+def count_params(model):
+	num_params = 0
+	num_params_train = 0
+	
+	for param in model.parameters():
+		n = param.numel()
+		num_params += n
+		if param.requires_grad:
+			num_params_train += n
+	
+	logger.info(f'Total number of parameters: {num_params}')
+	logger.info(f'Total number of trainable parameters: {num_params_train}')
+

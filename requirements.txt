@@ -9,3 +9,4 @@ xgboost
 fair-esm
 nni
 hyperopt
+ml_collections

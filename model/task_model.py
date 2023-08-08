@@ -49,3 +49,16 @@ class SmiModel(nn.Module):
     def configure_optimizers(self, learning_rate=1e-4):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
         return optimizer
+
+
+class ViTModel(nn.Module):
+    def __init__(self, vit_model, hidden_size):
+        super().__init__()
+        self.vit = vit_model
+        self.head = nn.Linear(hidden_size, 1)
+
+    def forward(self, inputs):
+        embeddings, att_weights = self.vit(inputs)
+        embedding_cls_token = embeddings[:, 0, :]
+        output = self.head(embedding_cls_token)
+        return output
