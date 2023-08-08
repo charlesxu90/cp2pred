@@ -28,11 +28,11 @@ Create ssh tunnel to view the webpage of the job:
 
 ssh -L ${port}:${node}.ibex.kaust.edu.sa:${port} ${user}@glogin.ibex.kaust.edu.sa 
 
+Then copy the link provided by your web-server and replace the hostname with localhost before pasting it in your local browser.
 " >&2
 
 # launch jupyter server
-jupyter-lab --no-browser --port=${port} --port-retries=0  --ip=${node}.ibex.kaust.edu.sa
+# jupyter-lab --no-browser --port=${port} --port-retries=0  --ip=${node}.ibex.kaust.edu.sa
 
-
-# nnictl create --config tune_config.yaml -p ${PORT}
+nnictl create --config tune_config.yaml -p ${port}
 
