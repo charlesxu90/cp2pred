@@ -10,8 +10,10 @@
 #SBATCH --reservation=A100
 #SBATCH --constraint="a100"
 
-conda activate /ibex/user/xux/pep-pred/env
+module purge
 module load gcc/11.1.0
+
+conda activate /ibex/user/xux/pep-pred/env
 
 # Get ssh-tunnel info
 export XDG_RUNTIME_DIR=/tmp node=$(hostname -s) 
