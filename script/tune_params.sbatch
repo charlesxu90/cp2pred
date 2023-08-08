@@ -12,8 +12,7 @@
 
 module purge
 module load gcc/11.1.0
-
-module load machine_learning/2022.11
+source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
 # Get ssh-tunnel info
