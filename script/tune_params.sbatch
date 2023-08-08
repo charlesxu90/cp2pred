@@ -7,8 +7,8 @@
 #SBATCH --partition=batch
 #SBATCH --output=log-%x-slurm-%j.out
 #SBATCH --error=log-%x-slurm-%j.err
-## SBATCH --reservation=v100
-## SBATCH --constraint="p100"
+#SBATCH --reservation=v100
+#SBATCH --constraint="v100"
 
 conda activate /ibex/user/xux/pep-pred/env
 module load gcc/11.1.0
