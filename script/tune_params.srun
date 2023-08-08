@@ -1,18 +1,19 @@
 #!/bin/bash --login
 
+conda activate /ibex/user/xux/pep-pred/env
 module load gcc/11.1.0
 
-# setup ssh tunneling 
+# Neeed to setup ssh tunnel
 export XDG_RUNTIME_DIR=/tmp IBEX_NODE=$(hostname -s) 
 KAUST_USER=$(whoami)  
 PORT=$SLURM_STEP_RESV_PORTS
 
 echo "
-Crete ssh tunnel to view the web-portal of ${IBEX_NODE} on Ibex: 
+Create ssh tunnel to view the web-portal of ${IBEX_NODE} on Ibex: 
 
-ssh -L ${PORT}:${IBEX_NODE}:${PORT} ${KAUST_USER}@glogin.ibex.kaust.edu.sa 
+ssh -L ${PORT}:${IBEX_NODE}:${PORT} ${KAUST_USER}@glogin.ibex.kaust.edu.sa
 
 " >&2
 
 # nnictl create --config tune_config.yaml -p ${PORT}
-jupyter-lab --no-browser --port=${PORT} --ip=${IBEX_NODE}
+jupyter-lab --no-browser --port=${PORT} --port-retries=0  --ip=${IBEX_NODE}.ibex.kaust.edu.sa
