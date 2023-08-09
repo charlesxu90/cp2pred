@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TaskTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
-                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False):
+                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='vit'):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -25,6 +25,7 @@ class TaskTrainer:
         self.use_amp = use_amp
         self.distributed = distributed
         self.mse_loss = nn.MSELoss()
+        self.model_type = model_type
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
         self.optimizer = raw_model.configure_optimizers(self.learning_rate)
@@ -51,11 +52,14 @@ class TaskTrainer:
             self._save_model(self.output_dir, 'final', curr_loss)
 
     def run_forward(self, model, batch):
+        batch = tuple(t.to(self.device) for t in batch)
         feat, target = batch
-        feat, target = feat.to(self.device), target.to(self.device)
-        output  = model.forward(feat.float())
-        mse_loss = self.mse_loss(output[:, 0], target.float())
-        
+        if self.model_type == 'vit':
+            output, attn_weights = model.forward(feat.float())
+            mse_loss = self.mse_loss(output.squeeze().float(), target.float())
+        else:
+            output  = model.forward(feat.float())
+            mse_loss = self.mse_loss(output[:, 0], target.float())
         return mse_loss, output, target
     
     def train_epoch(self, epoch, model, train_loader):
@@ -63,7 +67,7 @@ class TaskTrainer:
         if self.distributed:
             train_loader.sampler.set_epoch(epoch)   # for distributed parallel
         losses = []
-        pbar = enumerate(train_loader)
+        pbar = tqdm(enumerate(train_loader), total=len(train_loader))
         for it, batch in pbar:
             if self.device == 'cuda':
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
@@ -71,8 +75,9 @@ class TaskTrainer:
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
             else:
-                loss = self.run_forward(model, batch)
+                loss, _, _ = self.run_forward(model, batch)
             losses.append(loss.item())
+            pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
 
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
