@@ -22,6 +22,7 @@ from scipy import ndimage
 import os
 import ml_collections
 from urllib.request import urlretrieve
+from .resnet import ResNetV2
 
 logger = logging.getLogger(__name__)
 
@@ -127,10 +128,23 @@ class Embeddings(nn.Module):
     """
     def __init__(self, config, img_size, in_channels=3):
         super(Embeddings, self).__init__()
+        self.hybrid = None
         img_size = _pair(img_size)
 
-        patch_size = _pair(config.patches["size"])
-        n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
+        if config.patches.get("grid") is not None:
+            grid_size = config.patches["grid"]
+            patch_size = (img_size[0] // 16 // grid_size[0], img_size[1] // 16 // grid_size[1])
+            n_patches = (img_size[0] // 16) * (img_size[1] // 16)
+            self.hybrid = True
+        else:
+            patch_size = _pair(config.patches["size"])
+            n_patches = (img_size[0] // patch_size[0]) * (img_size[1] // patch_size[1])
+            self.hybrid = False
+
+        if self.hybrid:
+            self.hybrid_model = ResNetV2(block_units=config.resnet.num_layers,
+                                         width_factor=config.resnet.width_factor)
+            in_channels = self.hybrid_model.width * 16
         
         self.patch_embeddings = Conv2d(in_channels=in_channels,
                                        out_channels=config.hidden_size,
@@ -144,6 +158,9 @@ class Embeddings(nn.Module):
         B = x.shape[0]
         cls_tokens = self.cls_token.expand(B, -1, -1)
 
+
+        if self.hybrid:
+            x = self.hybrid_model(x)
         x = self.patch_embeddings(x)
         x = x.flatten(2)
         x = x.transpose(-1, -2)
@@ -280,11 +297,46 @@ class VisionTransformer(nn.Module):
             self.transformer.embeddings.cls_token.copy_(np2th(weights["cls"]))
             self.transformer.encoder.encoder_norm.weight.copy_(np2th(weights["Transformer/encoder_norm/scale"]))
             self.transformer.encoder.encoder_norm.bias.copy_(np2th(weights["Transformer/encoder_norm/bias"]))
-            self.transformer.embeddings.position_embeddings.copy_(np2th(weights["Transformer/posembed_input/pos_embedding"]))
+            
+            posemb = np2th(weights["Transformer/posembed_input/pos_embedding"])
+            posemb_new = self.transformer.embeddings.position_embeddings
+            if posemb.size() == posemb_new.size():
+                self.transformer.embeddings.position_embeddings.copy_(posemb)
+            else:
+                logger.info("load_pretrained: resized variant: %s to %s" % (posemb.size(), posemb_new.size()))
+                ntok_new = posemb_new.size(1)
+
+                if self.classifier == "token":
+                    posemb_tok, posemb_grid = posemb[:, :1], posemb[0, 1:]
+                    ntok_new -= 1
+                else:
+                    posemb_tok, posemb_grid = posemb[:, :0], posemb[0]
+
+                gs_old = int(np.sqrt(len(posemb_grid)))
+                gs_new = int(np.sqrt(ntok_new))
+                print('load_pretrained: grid-size from %s to %s' % (gs_old, gs_new))
+                posemb_grid = posemb_grid.reshape(gs_old, gs_old, -1)
+
+                zoom = (gs_new / gs_old, gs_new / gs_old, 1)
+                posemb_grid = ndimage.zoom(posemb_grid, zoom, order=1)
+                posemb_grid = posemb_grid.reshape(1, gs_new * gs_new, -1)
+                posemb = np.concatenate([posemb_tok, posemb_grid], axis=1)
+                self.transformer.embeddings.position_embeddings.copy_(np2th(posemb))
 
             for bname, block in self.transformer.encoder.named_children():
                 for uname, unit in block.named_children():
                     unit.load_from(weights, n_block=uname)
+
+            if self.transformer.embeddings.hybrid:
+                self.transformer.embeddings.hybrid_model.root.conv.weight.copy_(np2th(weights["conv_root/kernel"], conv=True))
+                gn_weight = np2th(weights["gn_root/scale"]).view(-1)
+                gn_bias = np2th(weights["gn_root/bias"]).view(-1)
+                self.transformer.embeddings.hybrid_model.root.gn.weight.copy_(gn_weight)
+                self.transformer.embeddings.hybrid_model.root.gn.bias.copy_(gn_bias)
+
+                for bname, block in self.transformer.embeddings.hybrid_model.body.named_children():
+                    for uname, unit in block.named_children():
+                        unit.load_from(weights, n_block=bname, n_unit=uname)
 
 
 def get_b16_config():
@@ -302,15 +354,26 @@ def get_b16_config():
     config.representation_size = None
     return config
 
-
-def load_vit_model(load_ori_weights=True):
-    os.makedirs("data/vit_models", exist_ok=True)
-    if not os.path.isfile("data/vit_models/ViT-B_16-224.npz"):
-        urlretrieve("https://storage.googleapis.com/vit_models/imagenet21k+imagenet2012/ViT-B_16-224.npz", 
-                    "data/vit_models/ViT-B_16-224.npz")
-        
+def get_r50_b16_config():
+    """Returns the Resnet50 + ViT-B/16 configuration."""
     config = get_b16_config()
+    del config.patches.size
+    config.patches.grid = (14, 14)
+    config.resnet = ml_collections.ConfigDict()
+    config.resnet.num_layers = (3, 4, 9)
+    config.resnet.width_factor = 1
+    return config
+
+
+def load_vit_model(load_ori_weights=True, resnet=True):
+    os.makedirs("data/vit_models", exist_ok=True)
+    filename = 'R50+ViT-B_16' if resnet else 'ViT-B_16-224'
+
+    if not os.path.isfile(f"data/vit_models/{filename}.npz"):
+        urlretrieve(f"https://storage.googleapis.com/vit_models/imagenet21k+imagenet2012/{filename}.npz", f"data/vit_models/{filename}.npz")
+
+    config = get_r50_b16_config() if resnet else get_b16_config()
     model = VisionTransformer(config, num_classes=1000, zero_head=False, img_size=224, vis=True) 
     if load_ori_weights:
-        model.load_from(np.load("data/vit_models/ViT-B_16-224.npz"))
+        model.load_from(np.load(f"data/vit_models/{filename}.npz"))
     return model, config

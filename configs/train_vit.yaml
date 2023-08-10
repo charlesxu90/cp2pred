@@ -1,6 +1,6 @@
 data: 
   input_path: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
-  batch_size: 240                   
+  batch_size: 120                   
   num_workers: 4                    # number of workers for data loading
   feat_names: 'smi_img'                 #'fps,monomer_dps,smi_bert,2dps'
   target_col: 'score'
