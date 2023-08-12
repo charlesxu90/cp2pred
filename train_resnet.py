@@ -6,15 +6,14 @@ import random
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from utils.utils import parse_config, load_model, log_GPU_info
+from utils.utils import parse_config, log_GPU_info
 from dataset.dataset import load_image_data, TaskImageDataset
-from model.task_model import ViTModel
 from model.task_trainer import TaskTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
 
-from model.vit import VisionTransformer, get_b16_config
+from model.resnet import init_model, load_model_from_ckpt
 
 def get_dataloaders(config):
     global_rank = get_rank()
@@ -47,10 +46,10 @@ def main(args, config):
     train_dataloader, test_dataloader = get_dataloaders(config.data)
     
     if args.ckpt is None:
-        model = ViTModel()
+        model = init_model("ResNet18", imageSize=224, num_classes=1)
     else:
-        model = ViTModel(load_ori_weights=False)
-        model = load_model(model, args.ckpt, device)
+        model = init_model("ResNet18", imageSize=224, num_classes=1)
+        model = load_model_from_ckpt("ResNet18", model, args.ckpt)
     model.to(device)
     
     logger.info(f"Start training")

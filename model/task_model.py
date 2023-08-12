@@ -3,7 +3,6 @@ import torch
 from torch import nn, optim
 import torch.nn.functional as F
 from .base_transformer import QuickGELU
-from .vit import load_vit_model
 
 logger = logging.getLogger(__name__)
 
@@ -52,21 +51,3 @@ class SmiModel(nn.Module):
         return optimizer
 
 
-class ViTModel(nn.Module):
-    def __init__(self, load_ori_weights=True):
-        super().__init__()
-        self.vit, config = self._init_vit_model(load_ori_weights)
-        self.head = nn.Linear(config.hidden_size, 1)
-
-    def forward(self, inputs):
-        embeddings, att_weights = self.vit.transformer(inputs)
-        output = self.head(embeddings[:, 0])
-        return output, att_weights
-
-    def configure_optimizers(self, learning_rate=1e-4):
-        optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
-        return optimizer
-    
-    def _init_vit_model(self, load_ori_weights=True):
-        vit_model, config = load_vit_model(load_ori_weights)
-        return vit_model, config

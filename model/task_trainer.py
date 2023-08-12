@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class TaskTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
-                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='vit'):
+                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='resnet'):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -28,7 +28,10 @@ class TaskTrainer:
         self.model_type = model_type
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        self.optimizer = raw_model.configure_optimizers(self.learning_rate)
+        if model_type == 'resnet':
+            self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
+        else:
+            self.optimizer = raw_model.configure_optimizers(self.learning_rate)
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -54,8 +57,8 @@ class TaskTrainer:
     def run_forward(self, model, batch):
         batch = tuple(t.to(self.device) for t in batch)
         feat, target = batch
-        if self.model_type == 'vit':
-            output, attn_weights = model.forward(feat.float())
+        if self.model_type == 'resnet':
+            output = model.forward(feat.float())
             mse_loss = self.mse_loss(output.squeeze().float(), target.float())
         else:
             output  = model.forward(feat.float())

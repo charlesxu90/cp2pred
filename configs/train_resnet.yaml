@@ -9,7 +9,7 @@ train:  # Training params
   max_epochs: 1000                  # *total number of epochs
   learning_rate: 0.005              # *learning rate
   device: 'cuda'                    # device to use for training
-  use_amp: false                     # whether to use torch.amp for automatic mixed precision training
-  model_type: 'vit'                 # model type, 'vit' or 'fps_dps'
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
+  model_type: 'resnet'              # model type, 'resnet' or 'fps_dps'
   distributed: true                 # whether to use distributed training
   

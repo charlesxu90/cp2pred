@@ -7,6 +7,5 @@ torchmetrics
 accelerate
 xgboost
 fair-esm
-nni
 hyperopt
-ml_collections
+grad-cam

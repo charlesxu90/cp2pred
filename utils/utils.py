@@ -110,15 +110,16 @@ def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
 
 
 def count_params(model):
-	num_params = 0
-	num_params_train = 0
-	
-	for param in model.parameters():
-		n = param.numel()
-		num_params += n
-		if param.requires_grad:
-			num_params_train += n
-	
-	logger.info(f'Total number of parameters: {num_params}')
-	logger.info(f'Total number of trainable parameters: {num_params_train}')
+    num_params = 0
+    num_params_train = 0
+    
+    for param in model.parameters():
+        n = param.numel()
+        num_params += n
+        if param.requires_grad:
+            num_params_train += n
+    
+    logger.info(f'Total number of parameters: {num_params}')
+    logger.info(f'Total number of trainable parameters: {num_params_train}')
+    return num_params, num_params_train
 
