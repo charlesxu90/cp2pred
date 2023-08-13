@@ -140,10 +140,29 @@ def cl_collate(batch):
     return list(seq1), list(seq2), label1, label2, label
 
 
-class TaskImageDataset(Dataset):
-    def __init__(self, dataset):
+class ImageDataset(Dataset):
+    def __init__(self, dataset, image_size=224):
         self.dataset = dataset
-        self.transform = transforms.Compose([transforms.Resize((224, 224)), transforms.ToTensor(), 
+        self.transform = transforms.Compose([transforms.Resize((image_size, image_size)), transforms.ToTensor(), 
+                                             transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),])
+
+    def __len__(self):
+        self.len = len(self.dataset)
+        return self.len
+
+    def __getitem__(self, idx):
+        item = self.dataset[idx]
+        [filepath, prop] = item
+        # logger.debug(f'ImageDataset: {filepath[0]}, {prop}')
+        img = Image.open(filepath[0])
+        img_t = self.transform(img)
+        
+        return img_t, prop
+
+class TaskImageDataset(Dataset):
+    def __init__(self, dataset, image_size=224):
+        self.dataset = dataset
+        self.transform = transforms.Compose([transforms.Resize((image_size, image_size)), transforms.ToTensor(), 
                                              transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),])
 
     def __len__(self):

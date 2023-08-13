@@ -18,7 +18,7 @@ from model.resnet import init_model, load_model_from_ckpt
 def get_dataloaders(config):
     global_rank = get_rank()
     train_data, valid_data = load_image_data(config.input_path, feat_names=config.feat_names, target_col=config.target_col,)
-    train_set, test_set = TaskImageDataset(train_data), TaskImageDataset(valid_data)
+    train_set, test_set = TaskImageDataset(train_data, image_size=config.image_size), TaskImageDataset(valid_data, image_size=config.image_size)
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
     train_dataloader = DataLoader(train_set, batch_size=config.batch_size, sampler=train_sampler, num_workers=config.num_workers, pin_memory=True)
 

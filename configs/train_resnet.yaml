@@ -3,12 +3,12 @@ data:
   batch_size: 120                   
   num_workers: 4                    # number of workers for data loading
   feat_names: 'smi_img'             #'fps,monomer_dps,smi_bert,2dps'
-  # image_size: 224                   # image size for resnet
+  image_size: 500                   # image size for resnet
   target_col: 'score'
 
 model:
   num_classes: 1                    # number of classes
-  pretrained: false                 # whether to use pretrained model
+  pretrained: true                 # whether to use pretrained model
   model_name: 'ResNet50'            # model name, 'ResNet18', 'ResNet50'
 
 train:  # Training params
