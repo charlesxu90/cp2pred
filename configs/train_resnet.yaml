@@ -2,8 +2,14 @@ data:
   input_path: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
   batch_size: 120                   
   num_workers: 4                    # number of workers for data loading
-  feat_names: 'smi_img'                 #'fps,monomer_dps,smi_bert,2dps'
+  feat_names: 'smi_img'             #'fps,monomer_dps,smi_bert,2dps'
+  # image_size: 224                   # image size for resnet
   target_col: 'score'
+
+model:
+  num_classes: 1                    # number of classes
+  pretrained: false                 # whether to use pretrained model
+  model_name: 'ResNet50'            # model name, 'ResNet18', 'ResNet50'
 
 train:  # Training params
   max_epochs: 1000                  # *total number of epochs

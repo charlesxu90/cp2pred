@@ -46,10 +46,10 @@ def main(args, config):
     train_dataloader, test_dataloader = get_dataloaders(config.data)
     
     if args.ckpt is None:
-        model = init_model("ResNet18", imageSize=224, num_classes=1)
+        model = init_model(**config.model)
     else:
-        model = init_model("ResNet18", imageSize=224, num_classes=1)
-        model = load_model_from_ckpt("ResNet18", model, args.ckpt)
+        model = init_model(**config.model)
+        model = load_model_from_ckpt(config.model.model_name, model, args.ckpt)
     model.to(device)
     
     logger.info(f"Start training")
@@ -60,8 +60,8 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='configs/train_vit.yaml')
-    parser.add_argument('--output_dir', default='results/train_vit/')
+    parser.add_argument('--config', default='configs/train_resnet.yaml')
+    parser.add_argument('--output_dir', default='results/train_resnet/')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--device', default='cuda', type=str)
     parser.add_argument('--debug', action='store_true')

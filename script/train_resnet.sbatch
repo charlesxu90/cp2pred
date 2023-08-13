@@ -16,5 +16,5 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
 
-config_name='train_smi_bert'
-torchrun --nproc_per_node=2 train_bert.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
+config_name='train_resnet'
+torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug

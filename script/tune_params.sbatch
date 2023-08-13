@@ -6,7 +6,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --partition=batch
 #SBATCH --output=log-%x-slurm-%j.out
-#SBATCH --error=log-%x-slurm-%j.err
+#SBATCH --error=log-%x-slurm-%j.out
 #SBATCH --reservation=A100
 #SBATCH --constraint="a100"
 

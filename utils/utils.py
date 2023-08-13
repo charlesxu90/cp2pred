@@ -7,7 +7,6 @@ import torch.nn.functional as F
 import yaml
 from easydict import EasyDict
 import logging
-
 logger = logging.getLogger(__name__)
 
 
@@ -122,4 +121,3 @@ def count_params(model):
     logger.info(f'Total number of parameters: {num_params}')
     logger.info(f'Total number of trainable parameters: {num_params_train}')
     return num_params, num_params_train
-
