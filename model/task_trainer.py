@@ -63,7 +63,7 @@ class TaskTrainer:
         else:
             output  = model.forward(feat.float())
             mse_loss = self.mse_loss(output[:, 0], target.float())
-        return mse_loss, target, target
+        return mse_loss, output, target
     
     def train_epoch(self, epoch, model, train_loader):
         model.train()

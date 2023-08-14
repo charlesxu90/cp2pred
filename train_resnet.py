@@ -6,7 +6,7 @@ import random
 from pathlib import Path
 from torch.utils.data import DataLoader
 
-from utils.utils import parse_config, log_GPU_info
+from utils.utils import parse_config, log_GPU_info, load_model
 from dataset.dataset import load_image_data, TaskImageDataset
 from model.task_trainer import TaskTrainer
 from torch.utils.data.distributed import DistributedSampler
@@ -14,6 +14,7 @@ from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
 
 from model.resnet import init_model, load_model_from_ckpt
+from model.molcl import MolCL
 
 def get_dataloaders(config):
     global_rank = get_rank()
@@ -46,10 +47,16 @@ def main(args, config):
     train_dataloader, test_dataloader = get_dataloaders(config.data)
     
     if args.ckpt is None:
-        model = init_model(**config.model)
+        model = init_model(**config.model.resnet)
     else:
-        model = init_model(**config.model)
-        model = load_model_from_ckpt(config.model.model_name, model, args.ckpt)
+        model = init_model(**config.model.resnet)
+        model = load_model_from_ckpt(config.model.resnet.model_name, model, args.ckpt)
+
+    if args.ckpt_cl is not None:
+        molcl = MolCL(model, device, **config.model.molcl)
+        molcl = load_model(molcl, args.ckpt_cl, device)
+        for r, c in zip(list(model.children())[:-1], list(molcl.encoder.children())):
+            r = c
     model.to(device)
     
     logger.info(f"Start training")
@@ -66,6 +73,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cuda', type=str)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str)
+    parser.add_argument('--ckpt_cl', default=None, type=str)
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

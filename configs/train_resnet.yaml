@@ -7,9 +7,10 @@ data:
   target_col: 'score'
 
 model:
-  num_classes: 1                    # number of classes
-  pretrained: true                 # whether to use pretrained model
-  model_name: 'ResNet50'            # model name, 'ResNet18', 'ResNet50'
+  resnet:
+    num_classes: 1                    # number of classes
+    pretrained: true                 # whether to use pretrained model
+    model_name: 'ResNet50'            # model name, 'ResNet18', 'ResNet50'
 
 train:  # Training params
   max_epochs: 1000                  # *total number of epochs

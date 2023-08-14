@@ -21,6 +21,6 @@ train:  # Training params
   learning_rate: 0.005              # *learning rate
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training
-  model_type: 'resnet_cl'           # model type, 'resnet', 'fps_dps', 'resnet_cl'
+  model_type: 'resnet'              # model type, 'resnet', 'fps_dps'
   distributed: true                 # whether to use distributed training
   
