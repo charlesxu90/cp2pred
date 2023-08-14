@@ -7,11 +7,12 @@ from torch import nn
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, get_regresssion_metrics
 import torch.nn.functional as F
+import cv2
 
 logger = logging.getLogger(__name__)
 
 
-class TaskTrainer:
+class MolCLTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
                  learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='resnet'):
@@ -28,10 +29,7 @@ class TaskTrainer:
         self.model_type = model_type
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        if model_type == 'resnet':
-            self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
-        else:
-            self.optimizer = raw_model.configure_optimizers(self.learning_rate)
+        self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -44,7 +42,7 @@ class TaskTrainer:
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if test_loader is not None:
-                test_loss, _ = self.test_epoch(epoch, model, test_loader)
+                test_loss = self.test_epoch(epoch, model, test_loader)
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             
@@ -56,14 +54,9 @@ class TaskTrainer:
 
     def run_forward(self, model, batch):
         batch = tuple(t.to(self.device) for t in batch)
-        feat, target = batch
-        if self.model_type == 'resnet':
-            output = model.forward(feat.float())
-            mse_loss = self.mse_loss(output.squeeze().float(), target.float())
-        else:
-            output  = model.forward(feat.float())
-            mse_loss = self.mse_loss(output[:, 0], target.float())
-        return mse_loss, target, target
+        img, img_aug, target = batch
+        loss  = model.forward(img, img_aug)
+        return loss, target, target
     
     def train_epoch(self, epoch, model, train_loader):
         model.train()
@@ -82,7 +75,7 @@ class TaskTrainer:
             losses.append(loss.item())
             pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
 
-            loss.backward()
+            loss.backward(retain_graph=True)
             torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
             self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
@@ -118,13 +111,7 @@ class TaskTrainer:
         logger.info(f'test epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
         self.writer.add_scalar(f'test_loss', loss, epoch + 1)
 
-        y_test = np.concatenate(y_test, axis=0)
-        y_test_hat = np.concatenate(y_test_hat, axis=0)
-        mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-        logger.info(f'eval, epoch: {epoch + 1}/{self.n_epochs}, spearman: {spearman.item():.3f}, pearson: {pearson.item():.3f}, mse: {mse.item():.3f}, mae: {mae.item():.3f}')
-        self.writer.add_scalar('spearman', spearman, epoch + 1)
-
-        return loss, spearman
+        return loss
 
     def _save_model(self, base_dir, info, valid_loss):
         """ Save model with format: model_{info}_{valid_loss} """
