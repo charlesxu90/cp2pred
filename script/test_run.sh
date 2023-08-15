@@ -11,5 +11,8 @@
 # torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
 # torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name}_imagemol --debug --ckpt data/resnet_ckpt/ImageMol.pth.tar
 
+# config_name='pretrain_resnet'
+# torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name}_ft --debug --ckpt_cl results/pretrain_resnet/model_9_0.354.pt
+
 config_name='pretrain_resnet'
-torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name}_ft --debug --ckpt_cl results/pretrain_resnet/model_9_0.354.pt
+torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name}_ibex_ft --debug --ckpt_cl results/pretrain_resnet_ibex/model_final_0.006.pt

@@ -9,7 +9,7 @@ data:
 model:
   resnet:
     num_classes: 1                    # number of classes
-    pretrained: true                 # whether to use pretrained model
+    pretrained: false                 # whether to use pretrained model from ImageNet
     model_name: 'ResNet50'            # model name, 'ResNet18', 'ResNet50'
   molcl:
     enc_width: 2048
