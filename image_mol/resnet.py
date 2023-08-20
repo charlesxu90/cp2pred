@@ -1,10 +1,5 @@
 import os
-import logging
-import torch
-import torchvision
-
-logger = logging.getLogger(__name__)
-
+from loguru import logger
 import torch
 from torch import Tensor
 import torch.nn as nn

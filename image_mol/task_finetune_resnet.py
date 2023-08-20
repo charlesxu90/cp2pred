@@ -1,25 +1,27 @@
 import argparse
-import logging
 import torch
 import numpy as np
 import random
+import warnings
+from loguru import logger
 from pathlib import Path
 from torch.utils.data import DataLoader
-
-from utils.utils import parse_config, log_GPU_info
-from dataset.dataset import load_image_data, ImageDataset
 from torch.utils.data.distributed import DistributedSampler
-from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
 
-from model.resnet import init_model, load_model_from_ckpt
-from model.molcl import MolCL
-from model.molcl_trainer import MolCLTrainer
+from utils.utils import parse_config, log_GPU_info, load_model
+from utils.dist import init_distributed, get_rank, is_main_process
+
+from .dataset import load_image_data, TaskImageDataset
+from .task_trainer import TaskTrainer
+from .resnet import init_model, load_model_from_ckpt
+from .molcl import MolCL
+warnings.filterwarnings("ignore", message="torch.distributed._all_gather_base is a private function")
 
 def get_dataloaders(config):
     global_rank = get_rank()
     train_data, valid_data = load_image_data(config.input_path, feat_names=config.feat_names, target_col=config.target_col,)
-    train_set, test_set = ImageDataset(train_data, image_size=config.image_size), ImageDataset(valid_data, image_size=config.image_size)
+    train_set, test_set = TaskImageDataset(train_data, image_size=config.image_size), TaskImageDataset(valid_data, image_size=config.image_size)
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
     train_dataloader = DataLoader(train_set, batch_size=config.batch_size, sampler=train_sampler, num_workers=config.num_workers, pin_memory=True)
 
@@ -37,26 +39,26 @@ def main(args, config):
     np.random.seed(seed)
     random.seed(seed)
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
-    logger = logging.getLogger(__name__)
-    
     if is_main_process():
         log_GPU_info()
     
     train_dataloader, test_dataloader = get_dataloaders(config.data)
     
     if args.ckpt is None:
-        resnet = init_model(**config.model.resnet)
+        model = init_model(**config.model.resnet)
     else:
-        resnet = init_model(**config.model.resnet)
-        resnet = load_model_from_ckpt(config.model.resnet.model_name, resnet, args.ckpt)
-    resnet.to(device)
+        model = init_model(**config.model.resnet)
+        model = load_model_from_ckpt(config.model.resnet.model_name, model, args.ckpt)
 
-    model = MolCL(resnet, device, **config.model.molcl)
+    if args.ckpt_cl is not None:
+        molcl = MolCL(model, device, **config.model.molcl)
+        molcl = load_model(molcl, args.ckpt_cl, device)
+        for r, c in zip(list(model.children())[:-1], list(molcl.encoder.children())):
+            r = c
+    model.to(device)
     
     logger.info(f"Start training")
-    trainer = MolCLTrainer(model, args.output_dir, **config.train)
+    trainer = TaskTrainer(model, args.output_dir, **config.train)
     trainer.fit(train_dataloader, test_dataloader)
     logger.info(f"Training finished")
 
@@ -69,6 +71,7 @@ if __name__ == '__main__':
     parser.add_argument('--device', default='cuda', type=str)
     parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str)
+    parser.add_argument('--ckpt_cl', default=None, type=str)
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

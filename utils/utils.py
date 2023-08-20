@@ -6,8 +6,7 @@ import torch
 import torch.nn.functional as F
 import yaml
 from easydict import EasyDict
-import logging
-logger = logging.getLogger(__name__)
+from loguru import logger
 
 
 def time_since(start_time):

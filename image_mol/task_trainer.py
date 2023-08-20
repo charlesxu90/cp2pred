@@ -1,18 +1,18 @@
 import os
+import logging
 from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
+from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, get_regresssion_metrics, get_metrics
 import torch.nn.functional as F
-from loguru import logger
-from .task_model import TaskPred
 
 
 class TaskTrainer:
 
-    def __init__(self, model: TaskPred, output_dir, grad_norm_clip=1.0, device='cuda',
+    def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
                  learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, task_type='regression'):
         self.model = model
         self.output_dir = output_dir
@@ -32,7 +32,7 @@ class TaskTrainer:
             raise Exception(f'Unknown task type: {task_type}')
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        self.optimizer = raw_model.configure_optimizers(self.learning_rate)
+        self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -41,7 +41,7 @@ class TaskTrainer:
             self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-        
+
         best_loss = np.float('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
@@ -57,11 +57,11 @@ class TaskTrainer:
         if self.output_dir is not None and save_ckpt:  # save final model
             self._save_model(self.output_dir, 'final', curr_loss)
 
-    def run_forward(self, model: TaskPred, batch):
+    def run_forward(self, model, batch):
+        batch = tuple(t.to(self.device) for t in batch)
         feat, target = batch
-        output = model.forward(feat)
-        # logger.info(f'output: {output.shape}, target: {target.shape}')
-        loss = self.loss_fn(output, target.to(self.device).float())
+        output = model.forward(feat.float())
+        loss = self.loss_fn(output.squeeze().float(), target.float())
         return loss, output, target
     
     def train_epoch(self, epoch, model, train_loader):
@@ -117,8 +117,8 @@ class TaskTrainer:
         logger.info(f'test epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
         self.writer.add_scalar(f'test_loss', loss, epoch + 1)
 
-        y_test = np.concatenate(y_test, axis=0)
-        y_test_hat = np.concatenate(y_test_hat, axis=0)
+        y_test = np.concatenate(y_test, axis=0).squeeze()
+        y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
         # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
         if self.task_type == 'regression':
             mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)

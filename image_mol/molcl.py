@@ -1,15 +1,10 @@
-import numpy as np
+from loguru import logger
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
 
-from torchvision import transforms
-from utils.img_utils import ImageAugmentation
-import logging
 
 torch.autograd.set_detect_anomaly(True)
-
-logger = logging.getLogger(__name__)
 
 class MolCL(nn.Module):
     def __init__(self, resnet, device, enc_width=2048, proj_dim=256, temp_scale=0.07, image_size=224):
@@ -46,5 +41,4 @@ class MolCL(nn.Module):
     
     def configure_optimizers(self, learning_rate=1e-4):
         optimizer = optim.AdamW(params=self.parameters(), lr=learning_rate)
-        # lr_scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, ) # use simple optimzer first
         return optimizer

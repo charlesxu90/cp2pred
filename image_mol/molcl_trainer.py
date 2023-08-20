@@ -1,21 +1,17 @@
 import os
-import logging
+from loguru import logger
 from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, get_regresssion_metrics
-import torch.nn.functional as F
-import cv2
-
-logger = logging.getLogger(__name__)
+from utils.utils import save_model
 
 
 class MolCLTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
-                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='resnet'):
+                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -26,7 +22,6 @@ class MolCLTrainer:
         self.use_amp = use_amp
         self.distributed = distributed
         self.mse_loss = nn.MSELoss()
-        self.model_type = model_type
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
         self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
