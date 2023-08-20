@@ -16,5 +16,12 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
 
-config_name='train_smi_bert'
-torchrun --nproc_per_node=2 train_bert.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
+# Pretrain
+# torchrun --nproc_per_node=2 -m seq_bert.pretrain_bert --config seq_bert/pretrain_smi_bert.yaml --output_dir results/smi_bert/pretrain_smi_bert_ibex
+
+# Finetune
+torchrun --nproc_per_node=2 -m seq_bert.pretrain_bert --config seq_bert/smi_bert_finetune.yaml --output_dir results/smi_bert_finetune --ckpt results/smi_bert/pretrain_smi_bert_ibex/model_final_0.384.pt
+
+# Task finetune
+# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_task_finetune.yaml --output_dir results/smi_bert_task_finetune --ckpt results/smi_bert_finetune/model_4_0.348.pt
+# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_cls_task_finetune.yaml --output_dir results/smi_bert_cls_task_finetune --ckpt results/smi_bert_finetune/model_4_0.348.pt
