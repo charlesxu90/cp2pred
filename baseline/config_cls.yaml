@@ -1,0 +1,11 @@
+data:
+  root_path: data/CycPeptMPDB
+  processed: true
+  features: dps  #fps, dps or fps,dps
+  label: is_cpp  # is_cpp or score
+
+model:
+  task_type: classification   # regression, classification
+  model_type: xgboost     # xgboost, rf
+  save_results: true
+  save_dir: results/baseline_cls

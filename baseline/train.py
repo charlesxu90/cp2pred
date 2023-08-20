@@ -12,11 +12,11 @@ import matplotlib.pyplot as plt
 from rdkit import Chem, rdBase, DataStructs
 from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors, rdMolDescriptors
-from xgboost import XGBRegressor
-from sklearn.ensemble import RandomForestRegressor
+from xgboost import XGBRegressor, XGBClassifier
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 
 
-from utils.utils import get_regresssion_metrics, parse_config
+from utils.utils import get_regresssion_metrics, parse_config, get_metrics
 
 rdBase.DisableLog('rdApp.error')
 warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -138,13 +138,54 @@ def load_data(config, ):
     
     return X_train, y_train, X_val, y_val, X_test, y_test
 
-def init_model(config):
-    if config.model_type == 'xgboost':
-        model = XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, subsample=0.7, colsample_bytree=0.8)
-    elif config.model_type == 'rf':
-        model = RandomForestRegressor()
 
+def init_model(config):
+    if config.task_type == 'regression':
+        if config.model_type == 'xgboost':
+            model = XGBRegressor(n_estimators=1000, max_depth=7, eta=0.1, subsample=0.7, colsample_bytree=0.8)
+        elif config.model_type == 'rf':
+            model = RandomForestRegressor()
+        else:
+            raise NotImplementedError
+    elif config.task_type == 'classification':
+        if config.model_type == 'xgboost':
+            model = XGBClassifier(n_estimators=1000, max_depth=7, eta=0.1, subsample=0.7, colsample_bytree=0.8, objective='binary:logistic')
+        elif config.model_type == 'rf':
+            model = RandomForestClassifier()
+        else:
+            raise NotImplementedError
+    else:
+        raise NotImplementedError
     return model
+
+
+def eval(task_type, model, X_train, y_train, X_val, y_val, X_test, y_test, save_path=None):
+
+    if task_type == 'regression':
+        logger.info(f'Evaluate on training dataset')
+        y_hat = model.predict(X_train)
+        plot_scatter_y(y_train, y_hat, x_label='y_val', y_label='y_hat_val', save_path=save_path, label='train')
+
+        logger.info(f'Evaluate on validataion dataset')
+        y_hat = model.predict(X_val)
+        plot_scatter_y(y_val, y_hat, x_label='y_val', y_label='y_hat_val', save_path=save_path, label='val')
+
+        logger.info(f'Evaluate on testing dataset')
+        y_hat = model.predict(X_test)
+        plot_scatter_y(y_test, y_hat, x_label='y_test', y_label='y_hat_test', save_path=save_path, label='test')
+        
+    elif task_type == 'classification':
+        logger.info(f'Evaluate on training dataset')
+        y_hat = model.predict(X_train)
+        get_metrics(y_train, y_hat)
+
+        logger.info(f'Evaluate on validataion dataset')
+        y_hat = model.predict(X_val)
+        get_metrics(y_val, y_hat)
+
+        logger.info(f'Evaluate on testing dataset')
+        y_hat = model.predict(X_test)
+        get_metrics(y_test, y_hat)
 
 
 def main(config):
@@ -159,19 +200,7 @@ def main(config):
     save_path = osp.join(config.model.save_dir, f'{config.model.task_type}_{config.model.model_type}.pkl')
     joblib.dump(model, save_path)
     # model = joblib.load(save_path)
-
-
-    logger.info(f'Evaluate on training dataset')
-    y_hat = model.predict(X_train)
-    plot_scatter_y(y_train, y_hat, x_label='y_val', y_label='y_hat_val', save_path=save_path, label='train')
-
-    logger.info(f'Evaluate on validataion dataset')
-    y_hat = model.predict(X_val)
-    plot_scatter_y(y_val, y_hat, x_label='y_val', y_label='y_hat_val', save_path=save_path, label='val')
-
-    logger.info(f'Evaluate on testing dataset')
-    y_hat = model.predict(X_test)
-    plot_scatter_y(y_test, y_hat, x_label='y_test', y_label='y_hat_test', save_path=save_path, label='test')
+    eval(config.model.task_type, model, X_train, y_train, X_val, y_val, X_test, y_test, save_path=save_path)
 
 
 if __name__ == '__main__':
