@@ -1,9 +1,6 @@
 from abc import ABC
-import logging
+from loguru import logger
 import torch
-from .bpe import BPEEncoder
-
-logger = logging.getLogger(__name__)
 
 
 class Tokenizer(ABC):
@@ -127,18 +124,6 @@ class SmilesTokenizer(Tokenizer):
         return temp_smiles
 
 
-class AATokenizer(Tokenizer):
-    """
-    A fixed dictionary for protein sequences.
-    """
-    def __init__(self, max_len=40) -> None:
-        self.char_idx = {self.PAD: 0, self.BEGIN: 1, self.END: 2, 'A': 3, 'R': 4, 'N': 5, 'D': 6, 'C': 7, 'E': 8,
-                         'Q': 9, 'G': 10, 'H': 11, 'I': 12, 'L': 13, 'K': 14, 'M': 15, 'F': 16, 'P': 17, 'S': 18,
-                         'T': 19, 'W': 20, 'Y': 21, 'V': 22, 'X': 23, self.MASK: 24}  # X for unknown AA
-        self.idx_char = {v: k for k, v in self.char_idx.items()}
-        self.max_len = max_len
-
-
 class HELMTokenizer(Tokenizer):
     """
     A fixed dictionary for HELM sequences.
@@ -155,65 +140,3 @@ class HELMTokenizer(Tokenizer):
                          self.MASK: 72}
         self.idx_char = {v: k for k, v in self.char_idx.items()}
         self.max_len = max_len
-
-
-class BPETokenizer(Tokenizer):
-    """
-    A simple BPE tokenizer for different sequences.
-    """
-    PAD = '<PAD>'
-    BEGIN = '<SOS>'
-    END = '<EOS>'
-    MASK = '<MASK>'
-    UNK = '<UNK>'
-    CLS = '<CLS>'
-
-    def __init__(self, bpe_path='results/helm_bpe', max_len=100, cls=False):
-        super().__init__()
-        self.bpe_encoder = BPEEncoder.load(bpe_path)
-        self.max_len = max_len
-        self.cls = False
-
-    def tokenize(self, seqs):
-        batch_size = len(seqs)
-        idx_matrix = torch.zeros((batch_size, self.max_len))
-        for i, seq in enumerate(seqs):
-            enc_seq = self.BEGIN + seq + self.END if not self.cls else self.CLS + self.BEGIN + seq + self.END
-            enc_idx = self.bpe_encoder.encode(enc_seq)
-            if len(enc_idx) > self.max_len:
-                idx_matrix[i, :self.max_len] = torch.tensor(enc_idx[:self.max_len])
-            else:
-                idx_matrix[i, :len(enc_idx)] = torch.tensor(enc_idx)
-        return idx_matrix.to(torch.int64)
-
-    def detokenize(self, token_array):
-        seqs_strings = []
-
-        for row in token_array:
-            seq = self.bpe_encoder.decode(row.tolist())
-            seq = seq.replace(self.BEGIN, '')
-            
-            if self.END in seq:  # remove the chars after the first END
-                seq = seq[:seq.index(self.END)]
-            seqs_strings.append(seq)
-
-        return seqs_strings
-    
-    def get_vocab_size(self) -> int:
-        return self.bpe_encoder.get_vocab_size()
-    
-    @property
-    def begin_token_id(self) -> int:
-        return self.bpe_encoder.encoder[self.BEGIN]
-
-    @property
-    def end_token_id(self) -> int:
-        return self.bpe_encoder.encoder[self.END]
-
-    @property
-    def pad_token_id(self) -> int:
-        return self.bpe_encoder.encoder[self.PAD]
-
-    @property
-    def mask_token_id(self) -> int:
-        return self.bpe_encoder.encoder[self.MASK]

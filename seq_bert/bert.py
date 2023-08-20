@@ -1,10 +1,8 @@
-import logging
+from loguru import logger
 import torch
 from torch import nn, optim
 import torch.nn.functional as F
 from .base_transformer import LayerNorm, Transformer
-
-logger = logging.getLogger(__name__)
 
 class BERT(nn.Module):
     def __init__(self,

@@ -1,0 +1,25 @@
+data: 
+  type: 'smiles'                    # data type, 'smiles' or 'helm' or 'aa_seq'
+  input_path: 'data/CycPeptMPDB/'  # pretrain data folder, contain two files: train.csv and val.csv
+  col_names: 'smi,is_cpp'                  # smi,is_cpp or smi,score
+  max_len: 1452                     # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
+  batch_size: 240                   # *batch size, local 240 1h12min
+  num_workers: 2                    # number of workers for data loading
+
+model:  # Model params
+  bert:
+    context_length: 512               # default 600
+    width: 512
+    n_heads: 8
+    n_layers: 6
+    mlm_probability: 0.15             # masked probability in mlm
+  output_size: 1                     # output size of the model
+
+train:  # Training params
+  max_epochs: 20                    # *total number of epochs
+  learning_rate: 0.000005           # *learning rate
+  device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
+  distributed: true                 # whether to use distributed training
+  task_type: 'classification'       # 'classification' or 'regression'
+

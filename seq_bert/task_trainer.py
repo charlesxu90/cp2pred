@@ -1,20 +1,19 @@
 import os
-import logging
 from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, get_regresssion_metrics
+from utils.utils import save_model, get_regresssion_metrics, get_metrics
 import torch.nn.functional as F
-
-logger = logging.getLogger(__name__)
+from loguru import logger
+from .task_model import TaskPred
 
 
 class TaskTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda',
-                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, model_type='resnet'):
+    def __init__(self, model: TaskPred, output_dir, grad_norm_clip=1.0, device='cuda',
+                 learning_rate=1e-4, max_epochs=10, use_amp=True, distributed=False, task_type='regression'):
         self.model = model
         self.output_dir = output_dir
         self.grad_norm_clip = grad_norm_clip
@@ -24,14 +23,16 @@ class TaskTrainer:
         self.n_epochs = max_epochs
         self.use_amp = use_amp
         self.distributed = distributed
-        self.mse_loss = nn.MSELoss()
-        self.model_type = model_type
+        self.task_type = task_type
+        if task_type == 'regression':
+            self.loss_fn = nn.MSELoss()
+        elif task_type == 'classification':
+            self.loss_fn = nn.BCEWithLogitsLoss()
+        else:
+            raise Exception(f'Unknown task type: {task_type}')
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
-        if model_type == 'resnet':
-            self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
-        else:
-            self.optimizer = raw_model.configure_optimizers(self.learning_rate)
+        self.optimizer = raw_model.configure_optimizers(self.learning_rate)
     
     def fit(self, train_loader, test_loader=None, save_ckpt=True):
         model = self.model
@@ -40,29 +41,27 @@ class TaskTrainer:
             self.model = nn.SyncBatchNorm.convert_sync_batchnorm(self.model.cuda())
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
-
+        
+        best_loss = np.float('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if test_loader is not None:
-                test_loss, _ = self.test_epoch(epoch, model, test_loader)
+                test_loss = self.test_epoch(epoch, model, test_loader)
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             
-            if self.output_dir is not None and save_ckpt: # save model in each epoch
+            if self.output_dir is not None and save_ckpt and curr_loss < best_loss:  # only save better loss
+                best_loss = curr_loss
                 self._save_model(self.output_dir, str(epoch+1), curr_loss)
 
         if self.output_dir is not None and save_ckpt:  # save final model
             self._save_model(self.output_dir, 'final', curr_loss)
 
-    def run_forward(self, model, batch):
-        batch = tuple(t.to(self.device) for t in batch)
+    def run_forward(self, model: TaskPred, batch):
         feat, target = batch
-        if self.model_type == 'resnet':
-            output = model.forward(feat.float())
-            mse_loss = self.mse_loss(output.squeeze().float(), target.float())
-        else:
-            output  = model.forward(feat.float())
-            mse_loss = self.mse_loss(output[:, 0], target.float())
+        output = model.forward(feat)
+        # logger.info(f'output: {output.shape}, target: {target.shape}')
+        mse_loss = self.loss_fn(output, target.to(self.device).float())
         return mse_loss, output, target
     
     def train_epoch(self, epoch, model, train_loader):
@@ -120,11 +119,17 @@ class TaskTrainer:
 
         y_test = np.concatenate(y_test, axis=0)
         y_test_hat = np.concatenate(y_test_hat, axis=0)
-        mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-        logger.info(f'eval, epoch: {epoch + 1}/{self.n_epochs}, spearman: {spearman.item():.3f}, pearson: {pearson.item():.3f}, mse: {mse.item():.3f}, mae: {mae.item():.3f}')
-        self.writer.add_scalar('spearman', spearman, epoch + 1)
+        # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
+        if self.task_type == 'regression':
+            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
+            logger.info(f'eval, epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
+            self.writer.add_scalar('spearman', spearman, epoch + 1)
+        elif self.task_type == 'classification':
+            acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
+            logger.info(f'eval, epoch: {epoch+1}, acc: {acc*100:.2f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
+            self.writer.add_scalar('mcc', mcc, epoch + 1)
 
-        return loss, spearman
+        return loss
 
     def _save_model(self, base_dir, info, valid_loss):
         """ Save model with format: model_{info}_{valid_loss} """

@@ -6,7 +6,7 @@ import numpy as np
 import torch
 from torch import nn
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, time_since, get_metrics, ContrastiveLoss
+from utils.utils import save_model
 from utils.scheduler import CosineAnnealingWarmupRestarts
 from utils.dist import is_dist_avail_and_initialized, is_main_process
 
@@ -111,6 +111,7 @@ class BertTrainer:
 
             return loss
 
+        best_loss = np.float('inf')
         for epoch in range(self.n_epochs):
             train_loss = run_epoch('train')
             if test_loader is not None:
@@ -118,7 +119,8 @@ class BertTrainer:
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             # save model in each epoch
-            if self.output_dir is not None and save_ckpt:
+            if self.output_dir is not None and save_ckpt and curr_loss < best_loss:  # only save better loss
+                best_loss = curr_loss
                 self._save_model(self.output_dir, str(epoch+1), curr_loss)
 
         if self.output_dir is not None and save_ckpt:  # save final model
