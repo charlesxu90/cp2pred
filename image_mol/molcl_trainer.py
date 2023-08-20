@@ -34,6 +34,7 @@ class MolCLTrainer:
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
 
+        best_loss = np.float('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if test_loader is not None:
@@ -41,7 +42,8 @@ class MolCLTrainer:
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             
-            if self.output_dir is not None and save_ckpt: # save model in each epoch
+            if self.output_dir is not None and save_ckpt and curr_loss < best_loss:  # only save better loss
+                best_loss = curr_loss
                 self._save_model(self.output_dir, str(epoch+1), curr_loss)
 
         if self.output_dir is not None and save_ckpt:  # save final model
