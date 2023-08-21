@@ -82,7 +82,7 @@ class TaskTrainer:
             pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
 
             loss.backward()
-            # torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
             self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
 
