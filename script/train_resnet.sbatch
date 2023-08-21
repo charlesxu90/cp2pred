@@ -15,6 +15,9 @@ module load gcc/11.1.0
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
+# Pretrain ResNet with contrastive learning, using ImageNet pretrained weights,
+# torchrun --nproc_per_node=2 -m image_mol.pretrain_resnet --config image_mol/pretrain_resnet.yaml --output_dir results/resnet/pretrain_resnet
 
-config_name='train_resnet'
-torchrun --nproc_per_node=2 train_resnet.py --config configs/${config_name}.yaml --output_dir results/${config_name} --debug
+# Task finetune
+torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_finetune_resnet.yaml --output_dir results/resnet/task_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_final_0.006.pt
+torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_cls_finetune_resnet.yaml --output_dir results/resnet/task_cls_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_final_0.006.pt

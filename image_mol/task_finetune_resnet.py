@@ -44,10 +44,8 @@ def main(args, config):
     
     train_dataloader, test_dataloader = get_dataloaders(config.data)
     
-    if args.ckpt is None:
-        model = init_model(**config.model.resnet)
-    else:
-        model = init_model(**config.model.resnet)
+    model = init_model(**config.model.resnet)
+    if args.ckpt is not None:
         model = load_model_from_ckpt(config.model.resnet.model_name, model, args.ckpt)
 
     if args.ckpt_cl is not None:
