@@ -121,7 +121,7 @@ class TaskTrainer:
             y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        logger.info(f'{e_type} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
+        logger.info(f'{e_type} epoch: {epoch + 1}, loss: {loss:.4f}')
         self.writer.add_scalar(f'{e_type}_loss', loss, epoch + 1)
 
         y_test = np.concatenate(y_test, axis=0).squeeze()

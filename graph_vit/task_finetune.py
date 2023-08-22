@@ -12,7 +12,7 @@ from torch.distributed.elastic.multiprocessing.errors import record
 from utils.utils import parse_config, log_GPU_info, load_model
 from utils.dist import init_distributed, get_rank, is_main_process
 
-from .dataset import create_dataset
+from .dataset.dataset import create_dataset
 from .model.model import GraphMLPMixer
 from .task_trainer import TaskTrainer
 # from .molcl import MolCL
