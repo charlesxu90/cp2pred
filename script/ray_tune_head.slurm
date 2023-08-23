@@ -23,7 +23,7 @@ export server_port=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)
 export redis_password=${SLURM_JOBID}
 export dashboard_port=$(python -c 'import socket; s=socket.socket(); s.bind(("", 0)); print(s.getsockname()[1]); s.close()')
 export ip_head=${head_node_ip}:${server_port}
-echo "${ip_head} ${redis_password} ${dashboard_port}" > tmp.head_node_info
+echo "${ip_head} ${redis_password} ${dashboard_port}" > ray.head_node_info
 
 ray start --node-ip-address ${head_node_ip} --port ${server_port} --redis-password=${redis_password} --head  \
 	--dashboard-port ${dashboard_port} --dashboard-host=$HOSTNAME --num-cpus 6 --block &
@@ -60,10 +60,10 @@ ray status --address ${ip_head} --redis_password ${redis_password}
 python -m graph_vit.task_ray_tune_hpo  --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --num_samples=100 --max_concur_trials=8
 
 # Shutdown worker nodes
-touch $PWD/tmp.shutdown.lock
+touch $PWD/ray.shutdown.lock
 sleep 20
 
 # Shutdown head node
 ray stop
-rm tmp.head_node_info
+rm ray.head_node_info
 echo " Stopped ray on Head node: $(/bin/hostname)"

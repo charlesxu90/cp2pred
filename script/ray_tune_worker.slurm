@@ -13,10 +13,10 @@
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
-export ip_head=$(cat ./tmp.head_node_info | cut -d " " -f 1)
+export ip_head=$(cat ./ray.head_node_info | cut -d " " -f 1)
 export head_node_ip=$(echo ${ip_head} | cut -d ":" -f 1)
-export redis_password=$(cat ./tmp.head_node_info | cut -d " " -f 2)
-export dashboard_port=$(cat ./tmp.head_node_info | cut -d " " -f 3)
+export redis_password=$(cat ./ray.head_node_info | cut -d " " -f 2)
+export dashboard_port=$(cat ./ray.head_node_info | cut -d " " -f 3)
 
 ray start --address ${ip_head}  --redis-password ${redis_password} --num-cpus 6 --block &
 
@@ -25,11 +25,11 @@ ray status --address ${ip_head} --redis_password ${redis_password}
 #sleep 10
 
 # worker shutdown strategy
-if [ -f "tmp.shutdown.lock" ] ; then
+if [ -f "ray.shutdown.lock" ] ; then
   echo " Stopping ray on Node: $(/bin/hostname)"
   ray stop
 else
-  while [ ! -f "tmp.shutdown.lock" ]; 
+  while [ ! -f "ray.shutdown.lock" ]; 
    do
      sleep 20
    done   
