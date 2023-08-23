@@ -1,11 +1,14 @@
 import pickle
+import numpy as np
 import pandas as pd
 import os.path as osp
 from tqdm import tqdm
 from loguru import logger
 from ogb.utils import smiles2graph
+from collections.abc import Sequence
 from ogb.utils.torch_util import replace_numpy_with_torchtensor
 import torch
+from torch import Tensor
 from torch_geometric.data import Data
 from torch_geometric.data import InMemoryDataset
 
@@ -27,6 +30,7 @@ def create_dataset(config):
                                              patch_num_diff=config.pos_enc.patch_num_diff)
 
     dataset = CycPepDataset(root=config.root, smiles_col=config.smiles_col, target_col=config.target_col, pre_transform=pre_transform)
+
     split_idx = dataset.get_idx_split()
     train_dataset, val_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']], dataset[split_idx['test']]
     train_dataset.transform, val_dataset.transform, test_dataset.transform = transform_train, transform_eval, transform_eval
@@ -110,6 +114,56 @@ class CycPepDataset(InMemoryDataset):
         split_dict = replace_numpy_with_torchtensor(splits)
         return split_dict
     
+
+def create_cl_dataset(config):
+    pre_transform = RWSETransform(rw_dim=config.pos_enc.rw_dim)
+
+    transform_train = GraphPartitionTransform(n_patches=config.metis.n_patches,
+                                              drop_rate=config.metis.drop_rate,
+                                              num_hops=config.metis.num_hops,
+                                              patch_rw_dim=config.pos_enc.patch_rw_dim,
+                                              patch_num_diff=config.pos_enc.patch_num_diff)
+
+    transform_eval = GraphPartitionTransform(n_patches=config.metis.n_patches,
+                                             num_hops=config.metis.num_hops,
+                                             patch_rw_dim=config.pos_enc.patch_rw_dim,
+                                             patch_num_diff=config.pos_enc.patch_num_diff)
+
+    dataset = MolCLDataset(root=config.root, smiles_col=config.smiles_col, pre_transform=pre_transform)
+    
+    split_idx = dataset.get_idx_split()
+    train_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']]
+    train_dataset.transform, test_dataset.transform = transform_train, transform_eval
+
+    torch.set_num_threads(config.num_workers)
+    test_dataset = [x_pair for x_pair in test_dataset]  # Fixed for valid after enumeration
+
+    return train_dataset, test_dataset
+
+
+class MolCLDataset(CycPepDataset):
+    def __init__(self, root='data/CycPeptMPDB', smiles_col='smi', target_col='score', smiles2graph=smiles2graph, transform=None, pre_transform=None):
+        """
+        Yeild the molecule graph and its augmented graph.
+
+        Args:
+            root (string): Root directory where the dataset should be saved.
+            smiles2graph (callable): A callable function that converts a SMILES string into a graph object. We use the OGB featurization.
+                * The default smiles2graph requires rdkit to be installed *
+        """
+        super().__init__(root, smiles_col, target_col, smiles2graph, transform, pre_transform)
+
+    def __getitem__(self, idx,):
+        
+        if (isinstance(idx, (int, np.integer))
+                or (isinstance(idx, Tensor) and idx.dim() == 0)
+                or (isinstance(idx, np.ndarray) and np.isscalar(idx))):
+            data = self.get(self.indices()[idx])
+            data_x, data_y = self.transform(data), self.transform(data)
+            return data_x, data_y
+
+        else:
+            return self.index_select(idx)
 
 
 if __name__ == '__main__':

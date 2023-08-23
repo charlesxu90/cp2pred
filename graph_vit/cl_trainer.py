@@ -1,19 +1,18 @@
 import os
-import logging
+from loguru import logger
 from tqdm import tqdm
 import numpy as np
 import torch
 from torch import nn
-from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, get_regresssion_metrics, get_metrics
-import torch.nn.functional as F
+from utils.utils import save_model
+from .model.cl_model import CLModel
 
 
-class TaskTrainer:
+class CLTrainer:
 
-    def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda', 
-                 max_epochs=10, use_amp=True, task_type='regression',
+    def __init__(self, model: CLModel, output_dir, device='cuda', 
+                 max_epochs=10, use_amp=True, grad_norm_clip=1.0, 
                  learning_rate=1e-4,lr_patience=20, lr_decay=0.5, min_lr=1e-5, weight_decay=0.0):
         self.model = model
         self.output_dir = output_dir
@@ -23,13 +22,6 @@ class TaskTrainer:
         self.device = device
         self.n_epochs = max_epochs
         self.use_amp = use_amp
-        self.task_type = task_type
-        if task_type == 'regression':
-            self.loss_fn = nn.MSELoss()
-        elif task_type == 'classification':
-            self.loss_fn = nn.BCEWithLogitsLoss()
-        else:
-            raise Exception(f'Unknown task type: {task_type}')
 
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
         self.optimizer = torch.optim.Adam(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=learning_rate, weight_decay=weight_decay)
@@ -37,8 +29,8 @@ class TaskTrainer:
         self.min_lr = min_lr
     
     def fit(self, train_loader, val_loader=None, test_loader=None, save_ckpt=True):
-        model = self.model.to(self.device)
-
+        model = self.model
+        
         best_loss = np.float('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
@@ -62,13 +54,11 @@ class TaskTrainer:
         if self.output_dir is not None and save_ckpt:  # save final model
             self._save_model(self.output_dir, 'final', curr_loss)
 
-    def run_forward(self, model, data):
-        data = data.to(self.device)
-        mask = ~torch.isnan(data.y)
-        y = data.y.squeeze().to(torch.float)
-        out = model(data).squeeze()
-        loss = self.loss_fn(out[mask], y[mask])
-        return loss, out, y
+    def run_forward(self, model: CLModel, batch):
+        # batch = tuple(t.to(self.device) for t in batch)
+        x, x_aug = batch
+        loss  = model.forward(x, x_aug)
+        return loss
     
     def train_epoch(self, epoch, model, train_loader):
         model.train()
@@ -77,15 +67,16 @@ class TaskTrainer:
         for it, batch in pbar:
             if self.device == 'cuda':
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                    loss, _, _ = self.run_forward(model, batch)
+                    loss = self.run_forward(model, batch)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
             else:
-                loss, _, _ = self.run_forward(model, batch)
+                loss = self.run_forward(model, batch)
             losses.append(loss.item())
             pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
 
-            loss.backward()
+            loss.backward(retain_graph=True)
+            # torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
             self.optimizer.step()
             self.optimizer.zero_grad(set_to_none=True)
 
@@ -98,37 +89,21 @@ class TaskTrainer:
     def eval_epoch(self, epoch, model, test_loader, e_type='test'):
         model.eval()
         losses = []
-        y_test = []
-        y_test_hat = []
 
         pbar = enumerate(test_loader)
         for it, batch in pbar:
             if self.device == 'cuda':
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
-                    loss, y_hat, y = self.run_forward(model, batch)
+                    loss = self.run_forward(model, batch)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
                     losses.append(loss.item())
             else:
-                loss, y_hat, y = self.run_forward(model, batch)
+                loss = self.run_forward(model, batch)
             losses.append(loss.item())
-            y_test_hat.append(y_hat.cpu().numpy())
-            y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        logger.info(f'{e_type} epoch: {epoch + 1}, loss: {loss:.4f}')
+        logger.info(f'{e_type} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
         self.writer.add_scalar(f'{e_type}_loss', loss, epoch + 1)
-
-        y_test = np.concatenate(y_test, axis=0).squeeze()
-        y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
-        # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
-        if self.task_type == 'regression':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-            logger.info(f'{e_type} epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
-            self.writer.add_scalar('spearman', spearman, epoch + 1)
-        elif self.task_type == 'classification':
-            acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
-            logger.info(f'{e_type} epoch: {epoch+1}, acc: {acc*100:.2f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
 
         return loss
 

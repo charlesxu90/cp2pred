@@ -13,17 +13,19 @@ from loguru import logger
 class GraphMLPMixer(nn.Module):
     def __init__(self, nout=1, hidden_size=128, nlayer_gnn=4, nlayer_mixer=2, 
                  rw_dim=0, dropout=0, mixer_dropout=0, mixer_type='vit',
-                 bn=True, residual=True, pooling='mean', n_patches=32, patch_rw_dim=8):
+                 bn=True, residual=True, pooling='mean', n_patches=32, patch_rw_dim=8, 
+                 n_enc_layer=1, n_out_layer=2):
         super().__init__()
         self.dropout = dropout
         self.pooling = pooling
         self.res = residual
 
         # Patch encoding
-        self.rw_encoder = MLP(rw_dim, hidden_size, 1)
-        self.patch_rw_encoder = MLP(patch_rw_dim, hidden_size, 1)
         self.input_encoder = AtomEncoder(hidden_size)
         self.edge_encoder = BondEncoder(hidden_size)
+
+        self.rw_encoder = MLP(rw_dim, hidden_size, nlayer=n_enc_layer)
+        self.patch_rw_encoder = MLP(patch_rw_dim, hidden_size, nlayer=n_enc_layer)
 
         self.gnns = nn.ModuleList([GNN(nin=hidden_size, nout=hidden_size, nlayer_gnn=1,
                                        bn=bn, dropout=dropout, res=residual) for _ in range(nlayer_gnn)])
@@ -33,9 +35,15 @@ class GraphMLPMixer(nn.Module):
         # Graph encoding
         self.transformer_encoder = Hadamard(nhid=hidden_size, dropout=mixer_dropout, nlayer=nlayer_mixer, n_patches=n_patches) \
             if mixer_type == 'vit' else MLPMixer(nhid=hidden_size, dropout=mixer_dropout, nlayer=nlayer_mixer, n_patches=n_patches)
-        self.output_decoder = MLP(hidden_size, nout, nlayer=2, with_final_activation=False)
+        self.output_decoder = MLP(hidden_size, nout, nlayer=n_out_layer, with_final_activation=False)
 
     def forward(self, data):
+        x = self.get_embd(data)
+        x = self.output_decoder(x)  # Readout
+        # logger.info(f'x shape: {x.shape}')
+        return x
+
+    def get_embd(self, data):
         # Initial encoding
         x = self.input_encoder(data.x.squeeze())
         x += self.rw_encoder(data.rw_pos_enc)  # Node PE
@@ -63,10 +71,4 @@ class GraphMLPMixer(nn.Module):
         mixer_x = self.transformer_encoder(mixer_x, data.coarsen_adj if hasattr(data, 'coarsen_adj') else None, ~data.mask)
 
         x = (mixer_x * data.mask.unsqueeze(-1)).sum(1) / data.mask.sum(1, keepdim=True)   # Global Average Pooling
-        # logger.info(f'x shape: {x.shape}')
-        
-        x = self.output_decoder(x)  # Readout
-        # logger.info(f'x shape: {x.shape}')
         return x
-
-
