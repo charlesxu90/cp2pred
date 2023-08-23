@@ -29,27 +29,6 @@ def get_dataloaders(config):
     return train_dataloader, val_dataloader, test_dataloader
 
 
-def init_model(config, metis_n_patches=32):
-    
-    model = GraphMLPMixer(nfeat_node=None,
-                          nfeat_edge=None,
-                          nhid=config.hidden_size,
-                          nout=1,  # 'cpep-cpp' (1-task regression)
-                          nlayer_gnn=config.nlayer_gnn,
-                          node_type='Atom',
-                          edge_type='Bond',
-                          nlayer_mlpmixer=config.nlayer_mlpmixer,
-                          gMHA_type=config.gMHA_type,
-                          gnn_type=config.gnn_type,
-                          rw_dim=config.pos_enc.rw_dim,
-                          lap_dim=config.pos_enc.lap_dim,
-                          patch_rw_dim=config.pos_enc.patch_rw_dim,
-                          pooling=config.pool,
-                          dropout=config.dropout,
-                          mlpmixer_dropout=config.mlpmixer_dropout,
-                          n_patches=metis_n_patches)
-    return model
-
 @record
 def main(args, config):
     device = torch.device(args.device)
@@ -62,7 +41,9 @@ def main(args, config):
         log_GPU_info()
     
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(config.data)
-    model = init_model(config.model, metis_n_patches=config.data.metis.n_patches)
+    nout = len(config.data.target_col.split(','))
+    model = GraphMLPMixer(nout=nout, **config.model.graphvit, rw_dim=config.data.pos_enc.rw_dim, 
+                          patch_rw_dim=config.data.pos_enc.patch_rw_dim, n_patches=config.data.metis.n_patches)
     
     # if args.ckpt_cl is not None:
     #     molcl = MolCL(model, device, **config.model.molcl)

@@ -1,17 +1,76 @@
-# Copyright (c) Microsoft Corporation.
-# Licensed under the MIT License.
-
-# Copyright (c) Facebook, Inc. and its affiliates.
-#
-# This source code is licensed under the MIT license found in the
-# LICENSE file in the root directory of this source tree.
-
 import math
-import torch.nn.functional as F
 from typing import Optional, Tuple
 
 import torch
 from torch import Tensor, nn
+import torch.nn.functional as F
+
+
+class Hadamard(nn.Module):
+    # Hadamard attention (default): (A ⊙ softmax(QK^T/sqrt(d)))V
+    def __init__(self, nhid, dropout, nlayer, n_patches, nhead=8, batch_first=True):
+        super().__init__()
+        self.transformer_encoder = nn.ModuleList(
+            [HadamardEncoderLayer(d_model=nhid, dim_feedforward=nhid*2, nhead=nhead, batch_first=batch_first, dropout=dropout)
+             for _ in range(nlayer)])
+
+    def forward(self, x, coarsen_adj, mask):
+        for layer in self.transformer_encoder:
+            x = layer(x, A=coarsen_adj, src_key_padding_mask=mask)
+        return x
+
+
+class HadamardEncoderLayer(nn.Module):
+
+    def __init__(self, d_model, nhead, dim_feedforward=2048, dropout=0.1, activation=F.relu, layer_norm_eps=1e-5, 
+                 batch_first=False, norm_first=True, device=None, dtype=None):
+        
+        factory_kwargs = {'device': device, 'dtype': dtype}
+        super(HadamardEncoderLayer, self).__init__()
+
+        self.self_attn = MultiheadAttention(embed_dim=d_model, num_heads=nhead, dropout=dropout, self_attention=True, batch_first=batch_first)
+        
+        self.linear1 = nn.Linear(d_model, dim_feedforward, **factory_kwargs)
+        self.dropout = nn.Dropout(dropout)
+        self.linear2 = nn.Linear(dim_feedforward, d_model, **factory_kwargs)
+        self.num_head = nhead
+
+        self.norm_first = norm_first
+        self.norm1 = nn.LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        self.norm2 = nn.LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        self.norm3 = nn.LayerNorm(d_model, eps=layer_norm_eps, **factory_kwargs)
+        self.dropout1 = nn.Dropout(dropout)
+        self.dropout2 = nn.Dropout(dropout)
+        self.dropout3 = nn.Dropout(dropout)
+
+        if activation is F.relu or isinstance(activation, torch.nn.ReLU):
+            self.activation_relu_or_gelu = 1
+        elif activation is F.gelu or isinstance(activation, torch.nn.GELU):
+            self.activation_relu_or_gelu = 2
+        else:
+            self.activation_relu_or_gelu = 0
+        self.activation = activation
+
+    # self-attention block
+    def _sa_block(self, x, attn_mask, key_padding_mask, attn_bias, A):
+        x = self.self_attn(x, x, x, attn_bias=attn_bias, attn_mask=attn_mask, 
+                           key_padding_mask=key_padding_mask, need_weights=False, A=A)[0]
+        return self.dropout1(x)
+
+    # feed forward block
+    def _ff_block(self, x):
+        x = self.linear2(self.dropout(self.activation(self.linear1(x))))
+        return self.dropout2(x)
+
+    def forward(self, src, src_mask=None, src_key_padding_mask=None, attn_bias=None, A=None):
+        x = src
+        if self.norm_first:
+            x = x + self._sa_block(self.norm1(x), src_mask, src_key_padding_mask, attn_bias=attn_bias, A=A)
+            x = x + self._ff_block(self.norm2(x))
+        else:
+            x = self.norm1(x + self._sa_block(x, src_mask, src_key_padding_mask, attn_bias=attn_bias, A=A))
+            x = self.norm2(x + self._ff_block(x))
+        return x
 
 
 class MultiheadAttention(nn.Module):
@@ -19,17 +78,8 @@ class MultiheadAttention(nn.Module):
     See "Attention Is All You Need" for more details.
     """
 
-    def __init__(
-        self,
-        embed_dim,
-        num_heads,
-        kdim=None,
-        vdim=None,
-        dropout=0.0,
-        bias=True,
-        self_attention=False,
-        batch_first=False,
-    ):
+    def __init__(self, embed_dim, num_heads, kdim=None, vdim=None, dropout=0.0, 
+                 bias=True, self_attention=False, batch_first=False,):
         super().__init__()
         self.embed_dim = embed_dim
         self.kdim = kdim if kdim is not None else embed_dim
@@ -40,18 +90,13 @@ class MultiheadAttention(nn.Module):
         self.dropout_module = nn.Dropout(dropout)
 
         self.head_dim = embed_dim // num_heads
-        assert (
-            self.head_dim * num_heads == self.embed_dim
-        ), "embed_dim must be divisible by num_heads"
+        assert (self.head_dim * num_heads == self.embed_dim), "embed_dim must be divisible by num_heads"
         self.scaling = self.head_dim ** -0.5
 
         self.self_attention = self_attention
-
         assert self.self_attention, "Only support self attention"
 
-        assert not self.self_attention or self.qkv_same_dim, (
-            "Self-attention requires query, key and " "value to be of the same size"
-        )
+        assert not self.self_attention or self.qkv_same_dim, ("Self-attention requires query, key and " "value to be of the same size")
 
         self.k_proj = nn.Linear(self.kdim, embed_dim, bias=bias)
         self.v_proj = nn.Linear(self.vdim, embed_dim, bias=bias)
@@ -79,19 +124,11 @@ class MultiheadAttention(nn.Module):
         if self.out_proj.bias is not None:
             nn.init.constant_(self.out_proj.bias, 0.0)
 
-    def forward(
-        self,
-        query,
-        key: Optional[Tensor],
-        value: Optional[Tensor],
-        attn_bias: Optional[Tensor],
-        key_padding_mask: Optional[Tensor] = None,
-        need_weights: bool = True,
-        attn_mask: Optional[Tensor] = None,
-        before_softmax: bool = False,
-        need_head_weights: bool = False,
-        A: Optional[Tensor] = None,
-    ) -> Tuple[Tensor, Optional[Tensor]]:
+    def forward(self, query, key: Optional[Tensor], value: Optional[Tensor], 
+                attn_bias: Optional[Tensor], key_padding_mask: Optional[Tensor] = None,
+                need_weights: bool = True, attn_mask: Optional[Tensor] = None,
+                before_softmax: bool = False, need_head_weights: bool = False,
+                A: Optional[Tensor] = None,) -> Tuple[Tensor, Optional[Tensor]]:
         """Input shape: Time x Batch x Channel
         Args:
             key_padding_mask (ByteTensor, optional): mask to exclude
@@ -113,8 +150,7 @@ class MultiheadAttention(nn.Module):
 
         is_batched = query.dim() == 3
         if self.batch_first and is_batched:
-            query, key, value = [x.transpose(1, 0)
-                                 for x in (query, key, value)]
+            query, key, value = [x.transpose(1, 0) for x in (query, key, value)]
 
         tgt_len, bsz, embed_dim = query.size()
         src_len = tgt_len
@@ -132,23 +168,11 @@ class MultiheadAttention(nn.Module):
         v = self.v_proj(query)
         q *= self.scaling
 
-        q = (
-            q.contiguous()
-            .view(tgt_len, bsz * self.num_heads, self.head_dim)
-            .transpose(0, 1)
-        )
+        q = (q.contiguous().view(tgt_len, bsz * self.num_heads, self.head_dim).transpose(0, 1))
         if k is not None:
-            k = (
-                k.contiguous()
-                .view(-1, bsz * self.num_heads, self.head_dim)
-                .transpose(0, 1)
-            )
+            k = (k.contiguous().view(-1, bsz * self.num_heads, self.head_dim).transpose(0, 1))
         if v is not None:
-            v = (
-                v.contiguous()
-                .view(-1, bsz * self.num_heads, self.head_dim)
-                .transpose(0, 1)
-            )
+            v = (v.contiguous().view(-1, bsz * self.num_heads, self.head_dim).transpose(0, 1))
 
         assert k is not None
         assert k.size(1) == src_len
@@ -162,11 +186,9 @@ class MultiheadAttention(nn.Module):
             assert key_padding_mask.size(0) == bsz
             assert key_padding_mask.size(1) == src_len
         attn_weights = torch.bmm(q, k.transpose(1, 2))
-        attn_weights = self.apply_sparse_mask(
-            attn_weights, tgt_len, src_len, bsz)
+        attn_weights = self.apply_sparse_mask(attn_weights, tgt_len, src_len, bsz)
 
-        assert list(attn_weights.size()) == [
-            bsz * self.num_heads, tgt_len, src_len]
+        assert list(attn_weights.size()) == [bsz * self.num_heads, tgt_len, src_len]
 
         if attn_bias is not None:
             attn_weights += attn_bias.contiguous().view(bsz * self.num_heads, tgt_len, src_len)
@@ -177,14 +199,9 @@ class MultiheadAttention(nn.Module):
 
         if key_padding_mask is not None:
             # don't attend to padding symbols
-            attn_weights = attn_weights.view(
-                bsz, self.num_heads, tgt_len, src_len)
-            attn_weights = attn_weights.masked_fill(
-                key_padding_mask.unsqueeze(1).unsqueeze(2).to(torch.bool),
-                float("-inf"),
-            )
-            attn_weights = attn_weights.view(
-                bsz * self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len)
+            attn_weights = attn_weights.masked_fill(key_padding_mask.unsqueeze(1).unsqueeze(2).to(torch.bool), float("-inf"),)
+            attn_weights = attn_weights.view(bsz * self.num_heads, tgt_len, src_len)
 
         if before_softmax:
             return attn_weights, v
@@ -193,8 +210,7 @@ class MultiheadAttention(nn.Module):
         max_val = attn_weights.max(dim=-1, keepdim=True)[0]
         attn_weights = torch.exp(attn_weights - max_val)
         # attn_weights = torch.exp(attn_weights)
-        attn_weights = attn_weights / \
-            attn_weights.sum(dim=-1, keepdim=True).clamp(min=1e-6)
+        attn_weights = attn_weights / attn_weights.sum(dim=-1, keepdim=True).clamp(min=1e-6)
 
         if A is not None:
             A = torch.repeat_interleave(A, repeats=self.num_heads, dim=0)
@@ -203,8 +219,7 @@ class MultiheadAttention(nn.Module):
 
         assert v is not None
         attn = torch.bmm(attn_probs, v)
-        assert list(attn.size()) == [
-            bsz * self.num_heads, tgt_len, self.head_dim]
+        assert list(attn.size()) == [bsz * self.num_heads, tgt_len, self.head_dim]
 
         attn = attn.transpose(0, 1).contiguous().view(tgt_len, bsz, embed_dim)
         attn = self.out_proj(attn)
@@ -214,9 +229,7 @@ class MultiheadAttention(nn.Module):
 
         attn_weights: Optional[Tensor] = None
         if need_weights:
-            attn_weights = attn_weights.view(
-                bsz, self.num_heads, tgt_len, src_len
-            ).transpose(1, 0)
+            attn_weights = attn_weights.view(bsz, self.num_heads, tgt_len, src_len).transpose(1, 0)
             if not need_head_weights:
                 # average attention weights over heads
                 attn_weights = attn_weights.mean(dim=0)
@@ -226,73 +239,3 @@ class MultiheadAttention(nn.Module):
     def apply_sparse_mask(self, attn_weights, tgt_len: int, src_len: int, bsz: int):
         return attn_weights
 
-
-class HadamardEncoderLayer(nn.Module):
-
-    def __init__(self,
-                 d_model,
-                 nhead,
-                 dim_feedforward=2048,
-                 dropout=0.1,
-                 activation=F.relu,
-                 layer_norm_eps=1e-5,
-                 batch_first=False,
-                 norm_first=True,
-                 device=None,
-                 dtype=None):
-        factory_kwargs = {'device': device, 'dtype': dtype}
-        super(HadamardEncoderLayer, self).__init__()
-        self.self_attn = MultiheadAttention(
-            embed_dim=d_model, num_heads=nhead, dropout=dropout, self_attention=True, batch_first=batch_first)
-        # Implementation of Feedforward model
-        self.linear1 = nn.Linear(d_model, dim_feedforward, **factory_kwargs)
-        self.dropout = nn.Dropout(dropout)
-        self.linear2 = nn.Linear(dim_feedforward, d_model, **factory_kwargs)
-        self.num_head = nhead
-
-        self.norm_first = norm_first
-        self.norm1 = nn.LayerNorm(
-            d_model, eps=layer_norm_eps, **factory_kwargs)
-        self.norm2 = nn.LayerNorm(
-            d_model, eps=layer_norm_eps, **factory_kwargs)
-        self.norm3 = nn.LayerNorm(
-            d_model, eps=layer_norm_eps, **factory_kwargs)
-        self.dropout1 = nn.Dropout(dropout)
-        self.dropout2 = nn.Dropout(dropout)
-        self.dropout3 = nn.Dropout(dropout)
-
-        if activation is F.relu or isinstance(activation, torch.nn.ReLU):
-            self.activation_relu_or_gelu = 1
-        elif activation is F.gelu or isinstance(activation, torch.nn.GELU):
-            self.activation_relu_or_gelu = 2
-        else:
-            self.activation_relu_or_gelu = 0
-        self.activation = activation
-
-    # self-attention block
-
-    def _sa_block(self, x, attn_mask, key_padding_mask, attn_bias, A):
-        x = self.self_attn(x, x, x,
-                           attn_bias=attn_bias,
-                           attn_mask=attn_mask,
-                           key_padding_mask=key_padding_mask,
-                           need_weights=False,
-                           A=A)[0]
-        return self.dropout1(x)
-
-    # feed forward block
-    def _ff_block(self, x):
-        x = self.linear2(self.dropout(self.activation(self.linear1(x))))
-        return self.dropout2(x)
-
-    def forward(self, src, src_mask=None, src_key_padding_mask=None, attn_bias=None, A=None):
-        x = src
-        if self.norm_first:
-            x = x + self._sa_block(
-                self.norm1(x), src_mask, src_key_padding_mask, attn_bias=attn_bias, A=A)
-            x = x + self._ff_block(self.norm2(x))
-        else:
-            x = self.norm1(
-                x + self._sa_block(x, src_mask, src_key_padding_mask, attn_bias=attn_bias, A=A))
-            x = self.norm2(x + self._ff_block(x))
-        return x

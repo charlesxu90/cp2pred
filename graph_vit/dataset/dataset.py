@@ -1,29 +1,56 @@
-import os.path as osp
 import pickle
 import pandas as pd
-import torch
-from ogb.utils import smiles2graph
-from ogb.utils.torch_util import replace_numpy_with_torchtensor
-from torch_geometric.data import Data
-from torch_geometric.data import InMemoryDataset
+import os.path as osp
 from tqdm import tqdm
 from loguru import logger
-from .transform import GraphPartitionTransform, PositionalEncodingTransform
+from ogb.utils import smiles2graph
+from ogb.utils.torch_util import replace_numpy_with_torchtensor
+import torch
+from torch_geometric.data import Data
+from torch_geometric.data import InMemoryDataset
+
+from .transform import RWSETransform, GraphPartitionTransform
+
+
+def create_dataset(config):
+    pre_transform = RWSETransform(rw_dim=config.pos_enc.rw_dim)
+
+    transform_train = GraphPartitionTransform(n_patches=config.metis.n_patches,
+                                              drop_rate=config.metis.drop_rate,
+                                              num_hops=config.metis.num_hops,
+                                              patch_rw_dim=config.pos_enc.patch_rw_dim,
+                                              patch_num_diff=config.pos_enc.patch_num_diff)
+
+    transform_eval = GraphPartitionTransform(n_patches=config.metis.n_patches,
+                                             num_hops=config.metis.num_hops,
+                                             patch_rw_dim=config.pos_enc.patch_rw_dim,
+                                             patch_num_diff=config.pos_enc.patch_num_diff)
+
+    dataset = CycPepDataset(root=config.root, smiles_col=config.smiles_col, target_col=config.target_col, pre_transform=pre_transform)
+    split_idx = dataset.get_idx_split()
+    train_dataset, val_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']], dataset[split_idx['test']]
+    train_dataset.transform, val_dataset.transform, test_dataset.transform = transform_train, transform_eval, transform_eval
+
+    torch.set_num_threads(config.num_workers)
+
+    val_dataset = [x for x in val_dataset]  # Fixed for valid after enumeration
+    test_dataset = [x for x in test_dataset]
+
+    return train_dataset, val_dataset, test_dataset
 
 
 class CycPepDataset(InMemoryDataset):
-    def __init__(self, root='data/CycPeptMPDB', target_col='score', smiles2graph=smiles2graph, transform=None, pre_transform=None):
+    def __init__(self, root='data/CycPeptMPDB', smiles_col='smi', target_col='score', smiles2graph=smiles2graph, transform=None, pre_transform=None):
         """
-
-        The label represents the cyclic peptide permeability ['score'].
+        The label represents the cyclic peptide permeability ['score'] or if it is cpp ['is_cpp'].
 
         Args:
             root (string): Root directory where the dataset should be saved.
-            smiles2graph (callable): A callable function that converts a SMILES
-                string into a graph object. We use the OGB featurization.
+            smiles2graph (callable): A callable function that converts a SMILES string into a graph object. We use the OGB featurization.
                 * The default smiles2graph requires rdkit to be installed *
         """
         self.smiles2graph = smiles2graph
+        self.smiles_col = smiles_col
         self.target_col = target_col
         super().__init__(root, transform, pre_transform)
         logger.info(f"Processed data path: {self.processed_paths[0]}")
@@ -42,9 +69,9 @@ class CycPepDataset(InMemoryDataset):
 
     def process(self):
         data_df = pd.read_csv(osp.join(self.raw_dir, 'all.csv.gz'))
-        smiles_list = data_df['smi']
+        smiles_list = data_df[self.smiles_col]
 
-        print('Converting SMILES strings into graphs...')
+        logger.info('Converting SMILES strings into graphs...')
         data_list = []
         for i in tqdm(range(len(smiles_list))):
             data = Data()
@@ -68,7 +95,7 @@ class CycPepDataset(InMemoryDataset):
 
         data, slices = self.collate(data_list)
 
-        print('Saving...')
+        logger.info('Saving...')
         torch.save((data, slices), self.processed_paths[0])
 
     def get_idx_split(self):
@@ -83,43 +110,6 @@ class CycPepDataset(InMemoryDataset):
         split_dict = replace_numpy_with_torchtensor(splits)
         return split_dict
     
-
-def create_dataset(config):
-    pre_transform = PositionalEncodingTransform(rw_dim=config.pos_enc.rw_dim, lap_dim=config.pos_enc.lap_dim)
-    transform_train = transform_eval = None
-
-    if config.metis.n_patches > 0:
-        _transform_train = GraphPartitionTransform(n_patches=config.metis.n_patches,
-                                                   metis=config.metis.enable,
-                                                   drop_rate=config.metis.drop_rate,
-                                                   num_hops=config.metis.num_hops,
-                                                   is_directed=False,
-                                                   patch_rw_dim=config.pos_enc.patch_rw_dim,
-                                                   patch_num_diff=config.pos_enc.patch_num_diff)
-
-        _transform_eval = GraphPartitionTransform(n_patches=config.metis.n_patches,
-                                                  metis=config.metis.enable,
-                                                  drop_rate=0.0,
-                                                  num_hops=config.metis.num_hops,
-                                                  is_directed=False,
-                                                  patch_rw_dim=config.pos_enc.patch_rw_dim,
-                                                  patch_num_diff=config.pos_enc.patch_num_diff)
-
-        transform_train = _transform_train
-        transform_eval = _transform_eval
-
-    dataset = CycPepDataset(root=config.root, target_col=config.target_col, pre_transform=pre_transform)
-    split_idx = dataset.get_idx_split()
-    train_dataset, val_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']], dataset[split_idx['test']]
-    train_dataset.transform, val_dataset.transform, test_dataset.transform = transform_train, transform_eval, transform_eval
-
-    torch.set_num_threads(config.num_workers)
-    if not config.metis.online:
-        train_dataset = [x for x in train_dataset]
-    val_dataset = [x for x in val_dataset]
-    test_dataset = [x for x in test_dataset]
-
-    return train_dataset, val_dataset, test_dataset
 
 
 if __name__ == '__main__':

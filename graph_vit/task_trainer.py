@@ -63,12 +63,6 @@ class TaskTrainer:
             self._save_model(self.output_dir, 'final', curr_loss)
 
     def run_forward(self, model, data):
-        if model.use_lap:
-            batch_pos_enc = data.lap_pos_enc
-            sign_flip = torch.rand(batch_pos_enc.size(1))
-            sign_flip[sign_flip >= 0.5] = 1.0
-            sign_flip[sign_flip < 0.5] = -1.0
-            data.lap_pos_enc = batch_pos_enc * sign_flip.unsqueeze(0)
         data = data.to(self.device)
         mask = ~torch.isnan(data.y)
         y = data.y.squeeze().to(torch.float)

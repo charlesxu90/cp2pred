@@ -1,50 +1,36 @@
 data: 
-  root: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
-  batch_size: 128                    # 
-  num_workers: 4                    # number of workers for data loading
-  feat_names: 'smi_img'             # smi_img
-  target_col: 'score'
-
   metis:
-    n_patches: 32
-    enable: true  # Enable Metis partition (otherwise use random partition)
-    online: true    # Enable data augmentation
-    n_patches: 32    # The number of partitions
-    drop_rate: 0.3    # Whether to randomly drop a set of edges before each metis partition
-    num_hops: 1    # expanding patches with k hop neighbourhood
+    n_patches: 32           # The number of partitions
+    drop_rate: 0.3          # Whether to randomly drop a set of edges before each metis partition
+    num_hops: 1             # expanding patches with k hop neighbourhood
 
   pos_enc:
-    rw_dim: 16  # Random walk structural encoding
-    lap_dim: 0  # Laplacian eigenvectors positional encoding
-    patch_rw_dim: 8  # Patch random walk structural encoding
-    patch_num_diff: -1  # Patch PE diffusion steps
+    rw_dim: 16               # Random walk structural encoding for node encoding
+    patch_rw_dim: 8          # Patch random walk structural encoding
+    patch_num_diff: -1       # Patch PE diffusion steps
 
+  root: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
+  smiles_col: 'smi'           # smi
+  target_col: 'score'
 
-device: 0
-seed: null
-logfile: null
+  batch_size: 128              # 
+  num_workers: 4               # number of workers for data loading
 
 model:
+  graphvit:
+    hidden_size: 128
+    nlayer_gnn: 4
+    mixer_type: vit
+    nlayer_mixer: 2
+    pooling: 'mean'
+    residual: true
+    dropout: 0.
+    mixer_dropout: 0.5
+
   molcl:
     enc_width: 2048
     proj_dim: 256
     temp_scale: 0.07
-
-  hidden_size: 128
-  nlayer_gnn: 4
-  nlayer_mlpmixer: 2
-  gMHA_type: MLPMixer
-  gnn_type: GINEConv
-  pool: 'mean'
-  residual: true
-  dropout: 0.
-  mlpmixer_dropout: 0.5
-  pos_enc:
-    rw_dim: 16  # Random walk structural encoding
-    lap_dim: 0  # Laplacian eigenvectors positional encoding
-    patch_rw_dim: 8  # Patch random walk structural encoding
-    patch_num_diff: -1  # Patch PE diffusion steps
-
 
 train:  # Training params
   device: 'cuda'                    # device to use for training
@@ -54,5 +40,5 @@ train:  # Training params
   learning_rate: 0.001              # *learning rate
   lr_patience: 20
   lr_decay: 0.5
-  min_lr: 1e-5
+  min_lr: 1e-6
   weight_decay: 0.
