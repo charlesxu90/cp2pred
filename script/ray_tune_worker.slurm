@@ -18,7 +18,7 @@ export head_node_ip=$(echo ${ip_head} | cut -d ":" -f 1)
 export redis_password=$(cat ./tmp.head_node_info | cut -d " " -f 2)
 export dashboard_port=$(cat ./tmp.head_node_info | cut -d " " -f 3)
 
-ray start --address ${ip_head}  --redis-password ${redis_password} --num-cpus 1 --block &
+ray start --address ${ip_head}  --redis-password ${redis_password} --num-cpus 6 --block &
 
 sleep 20
 ray status --address ${ip_head} --redis_password ${redis_password}

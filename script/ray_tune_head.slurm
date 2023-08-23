@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --mem=32G
 #SBATCH --gpus-per-node=1
-#SBATCH --cpus-per-gpu=4
+#SBATCH --cpus-per-gpu=6
 #SBATCH --time=24:00:00
 #SBATCH --constraint="v100"
 
@@ -26,7 +26,7 @@ export ip_head=${head_node_ip}:${server_port}
 echo "${ip_head} ${redis_password} ${dashboard_port}" > tmp.head_node_info
 
 ray start --node-ip-address ${head_node_ip} --port ${server_port} --redis-password=${redis_password} --head  \
-	--dashboard-port ${dashboard_port} --dashboard-host=$HOSTNAME --num-cpus 1 --block &
+	--dashboard-port ${dashboard_port} --dashboard-host=$HOSTNAME --num-cpus 6 --block &
 
 # Get ssh-tunnel to view the dashboard
 user=$(whoami)
