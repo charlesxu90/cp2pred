@@ -1,12 +1,15 @@
-python-Levenshtein # For distance calculation
+# python-Levenshtein # For distance calculation
 scikit-image
 
 # For Transpolymer
 transformers==4.20.1
 torchmetrics 
-accelerate
+# accelerate
 xgboost
-fair-esm
+# fair-esm
 hyperopt
 grad-cam
 loguru
+ogb
+metis
+einops

@@ -6,8 +6,8 @@
 #SBATCH --constraint="v100"
 #SBATCH --time=24:00:00
 #SBATCH --partition=batch
-#SBATCH --output=log-%x-slurm-%j.out
-#SBATCH --error=log-%x-slurm-%j.out
+#SBATCH --output=log-%x-%j.out
+#SBATCH --error=log-%x-%j.out
 
 module purge
 module load gcc/11.1.0
