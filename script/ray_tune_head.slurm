@@ -65,6 +65,5 @@ sleep 20
 
 # Shutdown head node
 ray stop
-rm $PWD/shutdown.lock
 rm head_node_info
 echo " Stopped ray on Head node: $(/bin/hostname)"
