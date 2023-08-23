@@ -2,10 +2,8 @@ import argparse
 from loguru import logger
 from pathlib import Path
 from torch_geometric.loader import DataLoader
-from torch.distributed.elastic.multiprocessing.errors import record
 
 from utils.utils import parse_config, set_random_seed, log_GPU_info, load_model
-from utils.dist import init_distributed, get_rank, is_main_process
 
 from .dataset.dataset import create_dataset
 from .model.model import GraphMLPMixer
@@ -23,7 +21,6 @@ def get_dataloaders(config):
     return train_dataloader, val_dataloader, test_dataloader
 
 
-@record
 def main(args, config):
     set_random_seed(args.seed)
     log_GPU_info()
@@ -49,8 +46,8 @@ def main(args, config):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('--config', default='configs/train_resnet.yaml')
-    parser.add_argument('--output_dir', default='results/train_resnet/')
+    parser.add_argument('--config', default='graph_vit/task_finetune.yaml')
+    parser.add_argument('--output_dir', default='results/graph_vit/task_finetune')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--ckpt', default=None, type=str)
     parser.add_argument('--ckpt_cl', default=None, type=str)

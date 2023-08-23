@@ -1,12 +1,13 @@
 import os
 import time
-from datetime import timedelta
+import yaml
+import random
 import numpy as np
+from loguru import logger
+from easydict import EasyDict
+from datetime import timedelta
 import torch
 import torch.nn.functional as F
-import yaml
-from easydict import EasyDict
-from loguru import logger
 
 
 def time_since(start_time):
@@ -18,17 +19,17 @@ def get_path(base_dir, base_name, suffix=''):
     return os.path.join(base_dir, base_name + suffix)
 
 
-def set_random_seed(seed, device):
+def set_random_seed(seed):
     """
     Set the random seed for Numpy and PyTorch operations
     Args:
         seed: seed for the random number generators
         device: "cpu" or "cuda"
     """
+    random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if device == 'cuda':
-        torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
 
 
 def unique(arr):
@@ -54,11 +55,11 @@ def save_model(model, base_dir, base_name):
     torch.save(raw_model.state_dict(), get_path(base_dir, base_name, '.pt'))
 
 
-def load_model(model, model_weights_path, device, copy_to_cpu=True):
+def load_model(model, model_weights_path, copy_to_cpu=True):
     raw_model = model.module if hasattr(model, "module") else model
     map_location = lambda storage, loc: storage if copy_to_cpu else None
     raw_model.load_state_dict(torch.load(model_weights_path, map_location))
-    return raw_model.to(device)
+    return raw_model
 
 def log_GPU_info():
     logger.info('GPU INFO:')
