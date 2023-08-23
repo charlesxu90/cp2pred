@@ -6,8 +6,8 @@
 #SBATCH --constraint="a100"
 #SBATCH --time=24:00:00
 #SBATCH --partition=batch
-#SBATCH --output=log-%x-slurm-%j.out
-#SBATCH --error=log-%x-slurm-%j.out
+#SBATCH --output=log-%x-%j.out
+#SBATCH --error=log-%x-%j.out
 #SBATCH --reservation=A100
 
 module purge

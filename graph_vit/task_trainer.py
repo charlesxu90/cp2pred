@@ -43,10 +43,10 @@ class TaskTrainer:
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if val_loader is not None:
-                val_loss = self.eval_epoch(epoch, model, val_loader, e_type='val')
+                val_loss, _ = self.eval_epoch(epoch, model, val_loader, e_type='val')
 
             if test_loader is not None:
-                test_loss = self.eval_epoch(epoch, model, test_loader, e_type='test')
+                test_loss, _ = self.eval_epoch(epoch, model, test_loader, e_type='test')
 
             curr_loss = val_loss if 'val_loss' in locals() else train_loss
             
@@ -125,12 +125,13 @@ class TaskTrainer:
             mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
             logger.info(f'{e_type} epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
             self.writer.add_scalar('spearman', spearman, epoch + 1)
+            metric = spearman
         elif self.task_type == 'classification':
             acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
             logger.info(f'{e_type} epoch: {epoch+1}, acc: {acc*100:.2f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
             self.writer.add_scalar('mcc', mcc, epoch + 1)
-
-        return loss
+            metric = mcc
+        return loss, metric
 
     def _save_model(self, base_dir, info, valid_loss):
         """ Save model with format: model_{info}_{valid_loss} """

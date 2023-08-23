@@ -1,14 +1,14 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=4
-#SBATCH --cpus-per-gpu=3
-#SBATCH --mem=64G
-#SBATCH --time=24:00:00
+#SBATCH --job-name=ray_header
+#SBATCH --output=log-%x-%j.out
+#SBATCH --error=log-%x-%j.out
 #SBATCH --partition=batch
-#SBATCH --output=log-%x-slurm-%j.out
-#SBATCH --error=log-%x-slurm-%j.out
-#SBATCH --reservation=A100
-#SBATCH --constraint="a100"
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-gpu=4
+#SBATCH --time=24:00:00
+#SBATCH --constraint="v100"
 
 module purge
 module load gcc/11.1.0
@@ -57,7 +57,7 @@ ray status --address ${ip_head} --redis_password ${redis_password}
 
 # ==== Code to run ray tune ==== #
 # The following is the command to run ray tune, the most critical part to set for a task
-python -u hello_tune.py --num-samples=100 --max-concurrent-trials=20
+python -m graph_vit.task_ray_tune_hpo  --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --num_samples=100 --max_concur_trials=8
 
 # Shutdown worker nodes
 touch $PWD/shutdown.lock

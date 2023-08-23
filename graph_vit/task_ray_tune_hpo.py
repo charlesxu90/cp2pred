@@ -1,3 +1,4 @@
+import os
 import argparse
 from loguru import logger
 from pathlib import Path
@@ -16,27 +17,31 @@ from ray import tune
 from ray.air import Checkpoint, session
 from ray.tune.schedulers import ASHAScheduler
 
-def update_config(config, params):
-    config.train.learning_rate = params['lr']
-    config.model.mlp_hid_size = ','.join([str(params[p]) for p in ['l1_dim', 'l2_dim', 'l3_dim', 'l4_dim']])
+def update_config(config, tune_config):
+    config.data.metis.n_patches = tune_config['n_patches']
+    config.data.metis.drop_rate = tune_config['drop_rate']
+    config.data.metis.num_hops = tune_config['num_hops']
+    config.train.learning_rate = tune_config['lr']
+    
     return config
 
-def main(config, args, base_config):
+def main(args, base_config, tune_config):
     set_random_seed(args.seed)
     log_GPU_info()
 
-    config = update_config(base_config, config)
+    config = update_config(base_config, tune_config)
     
     train_dataloader, val_dataloader, test_dataloader = get_dataloaders(config.data)
     nout = len(config.data.target_col.split(','))
     model = GraphMLPMixer(nout=nout, **config.model.graphvit, rw_dim=config.data.pos_enc.rw_dim, 
                           patch_rw_dim=config.data.pos_enc.patch_rw_dim, n_patches=config.data.metis.n_patches)
     trainer = TaskTrainer(model, args.output_dir, **config.train)
+    model = model.to(trainer.device)
     
     logger.info(f"Start training")
     for epoch in range(config.train.max_epochs):
         trainer.train_epoch(epoch, model, train_dataloader)
-        _, spearman = trainer.test_epoch(epoch, model, test_dataloader)
+        _, spearman = trainer.eval_epoch(epoch, model, test_dataloader)
         # raw_model = model.module if hasattr(model, "module") else model
 
         # checkpoint_data = {
@@ -50,21 +55,22 @@ def main(config, args, base_config):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='graph_vit/task_finetune.yaml')
-    parser.add_argument('--output_dir', default='results/graph_vit/task_finetune')
+    parser.add_argument('--output_dir', default='results/graph_vit/task_ray_tune_hpo')
     parser.add_argument('--seed', default=42, type=int)
+    parser.add_argument("--num_samples", type=int, default=100, help="Number of samples/trials to run")
+    parser.add_argument("--max_concur_trials", type=int, default=8, help="Maximum trials to start concurrently")
 
     args = parser.parse_args()
     base_config = parse_config(args.config)
     
-    # ray.init()
-    # ray.init(address='127.0.0.1', _node_ip_address='127.0.0.1')
+    #Connect to Ray server
+    ray.init(address=os.environ["ip_head"], _node_ip_address=os.environ["head_node_ip"],_redis_password=os.getenv('redis_password'))
 
     search_space_config = {
-        "l1_dim": tune.choice([2**i for i in range(3, 10)]),
-        "l2_dim": tune.choice([2**i for i in range(3, 10)]),
-        "l3_dim": tune.choice([2**i for i in range(3, 10)]),
-        "l4_dim": tune.choice([2**i for i in range(2, 8)]),
-        "lr": tune.loguniform(1e-7, 1e-1),
+        "n_patches": tune.randint(24, 40),
+        "drop_rate": tune.choice([0.1*x for x in range(0, 5, 1)]),
+        "num_hops": tune.randint(1, 4),
+        "lr": tune.loguniform(1e-6, 1e-1),
     }
 
     scheduler = ASHAScheduler(max_t=base_config.train.max_epochs, grace_period=1, reduction_factor=2)
@@ -72,13 +78,14 @@ if __name__ == '__main__':
     tuner = tune.Tuner(
         tune.with_resources(
             tune.with_parameters(partial(main, args=args, base_config=base_config)),
-            resources={"cpu": 2, "gpu": 1}
+            resources={"cpu": 4, "gpu": 1}
         ),
         tune_config=tune.TuneConfig(
             metric="spearman",
             mode="max",
             scheduler=scheduler,
-            num_samples=100,
+            num_samples=args.num_samples,
+            max_concurrent_trials=args.max_concur_trials,
         ),
         param_space=search_space_config,
     )
@@ -86,4 +93,4 @@ if __name__ == '__main__':
     results = tuner.fit()
 
     best_result = results.get_best_result("spearman", "max", "last")
-    print(f"Best trial config: {best_result.config}")
+    logger.info(f"Best trial config: {best_result.config}")

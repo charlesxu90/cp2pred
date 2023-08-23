@@ -1,13 +1,13 @@
 #!/bin/bash
-#SBATCH --nodes=1
-#SBATCH --gpus-per-node=2
-#SBATCH --cpus-per-gpu=2
-#SBATCH --mem=64G
-#SBATCH --constraint="v100"
-#SBATCH --time=24:00:00
-#SBATCH --partition=batch
 #SBATCH --output=log-%x-%j.out
 #SBATCH --error=log-%x-%j.out
+#SBATCH --partition=batch
+#SBATCH --nodes=1
+#SBATCH --mem=32G
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-gpu=2
+#SBATCH --time=24:00:00
+#SBATCH --constraint="v100"
 
 module purge
 module load gcc/11.1.0

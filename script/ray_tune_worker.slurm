@@ -2,11 +2,13 @@
 #SBATCH --job-name=ray_worker
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.out
-#SBATCH --ntasks=1
-#SBATCH --tasks-per-node=1
+#SBATCH --partition=batch
 #SBATCH --nodes=1
-#SBATCH --cpus-per-task=8
-#SBATCH --time=00:30:00
+#SBATCH --mem=32G
+#SBATCH --gpus-per-node=1
+#SBATCH --cpus-per-gpu=6
+#SBATCH --time=24:00:00
+#SBATCH --constraint="v100"
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
@@ -16,8 +18,8 @@ export head_node_ip=$(echo ${ip_head} | cut -d ":" -f 1)
 export redis_password=$(cat ./head_node_info | cut -d " " -f 2)
 export dashboard_port=$(cat ./head_node_info | cut -d " " -f 3)
 
-ray start --address ${ip_head}  --redis-password ${redis_password} \
-	--num-cpus ${SLURM_CPUS_PER_TASK} --block &
+ray start --address ${ip_head}  --redis-password ${redis_password} --num-cpus ${SLURM_CPUS_PER_TASK} --block &
+
 sleep 20
 ray status --address ${ip_head} --redis_password ${redis_password}
 #sleep 10
