@@ -44,7 +44,7 @@ sleep 20
 job_ids=()
 for (( i=1; i<=${NUM_WORKERS}; i++ ))
  do
-   job_ids[$i]=$(sbatch -x $SLURM_NODELIST script/ray_worker_node.slurm | cut -d " " -f 4)
+   job_ids[$i]=$(sbatch -x $SLURM_NODELIST script/ray_tune_worker.slurm | cut -d " " -f 4)
  done 
 
 while [ ! -z $(squeue -n ray_worker -t PD -h -o %A) ]
