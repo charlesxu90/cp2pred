@@ -20,7 +20,7 @@ model:
   graphvit:
     hidden_size: 128
     nlayer_gnn: 4
-    mixer_type: vit
+    mixer_type: mlp
     nlayer_mixer: 2
     pooling: 'mean'
     residual: true
