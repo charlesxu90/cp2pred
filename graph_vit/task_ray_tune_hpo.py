@@ -59,12 +59,16 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument("--num_samples", type=int, default=100, help="Number of samples/trials to run")
     parser.add_argument("--max_concur_trials", type=int, default=8, help="Maximum trials to start concurrently")
+    parser.add_argument('--local', action='store_true')
 
     args = parser.parse_args()
     base_config = parse_config(args.config)
     
     #Connect to Ray server
-    ray.init(address=os.environ["ip_head"], _node_ip_address=os.environ["head_node_ip"],_redis_password=os.getenv('redis_password'))
+    if args.local:
+        ray.init(address='ray://10.67.24.210:10001')
+    else:
+        ray.init(address=os.environ["ip_head"], _node_ip_address=os.environ["head_node_ip"],_redis_password=os.getenv('redis_password'))
 
     search_space_config = {
         "n_patches": tune.randint(24, 40),

@@ -24,5 +24,8 @@
 
 #==== Graph ViT ====#
 # python -m graph_vit.pretrain_graphvit_cl --config graph_vit/pretrain_graphvit_cl.yaml --output_dir results/graph_vit/pretrain_graphvit_cl
-python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --ckpt results/graph_vit/task_finetune_vit2/model_22_0.886.pt
+# python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune 
 # python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --ckpt_cl results/graph_vit/pretrain_graphvit_cl/model_10_0.229.pt
+
+# NNI HPO
+nnictl create --config ./graphvit_nni_hpo.config --port 8080

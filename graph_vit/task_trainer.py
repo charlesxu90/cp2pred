@@ -39,7 +39,7 @@ class TaskTrainer:
     def fit(self, train_loader, val_loader=None, test_loader=None, save_ckpt=True):
         model = self.model.to(self.device)
 
-        best_loss = np.float('inf')
+        best_loss = np.float32('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if val_loader is not None:

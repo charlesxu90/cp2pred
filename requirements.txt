@@ -13,4 +13,5 @@ loguru
 ogb
 metis
 einops
-# nni
+easydict
+nni
