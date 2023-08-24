@@ -1,13 +1,13 @@
-name: pep-pred-env
+name: cp2pred-env
 
 channels:
   - conda-forge
   - defaults
   - anaconda
-  - pytorch     # For torch series
+  # - pytorch     # For torch series
 
 dependencies:
-  - python=3.7
+  - python=3.9
   - pip
 
 # jupyter-lab dependencies
@@ -20,22 +20,14 @@ dependencies:
   - matplotlib
 
 # machine learning & data analysis dependencies
-  - pytorch::pytorch
-  - nvidia::cudatoolkit=11.3  # Rely on GPU driver
-  - torchvision
-  - torchaudio
   - tqdm
   - numpy          
   - scipy
   - pandas
-  - tensorboard
+  - tensorboardX
   - biopython=1.77
   - scikit-learn
   - numba
   - biopandas
   - conda-forge::rdkit
   - conda-forge::metis
-
-  - pip:
-    - -r requirements.txt
-

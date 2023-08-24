@@ -2,8 +2,8 @@
 scikit-image
 
 # For Transpolymer
-transformers==4.20.1
-torchmetrics 
+# transformers==4.20.1
+# torchmetrics 
 # accelerate
 xgboost
 # fair-esm
@@ -13,3 +13,4 @@ loguru
 ogb
 metis
 einops
+# nni
