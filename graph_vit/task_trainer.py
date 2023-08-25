@@ -6,7 +6,7 @@ import torch
 from torch import nn
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
-from utils.utils import save_model, get_regresssion_metrics, get_metrics
+from utils.utils import save_model, get_regresssion_metrics, get_metrics, LossAnomalyDetector
 import torch.nn.functional as F
 
 
@@ -24,6 +24,7 @@ class TaskTrainer:
         self.n_epochs = max_epochs
         self.use_amp = use_amp
         self.task_type = task_type
+        self.loss_anomaly_detector = LossAnomalyDetector()
         if task_type == 'regression':
             self.loss_fn = nn.MSELoss()
         elif task_type == 'classification':
@@ -82,12 +83,17 @@ class TaskTrainer:
                     losses.append(loss.item())
             else:
                 loss, _, _ = self.run_forward(model, batch)
-            losses.append(loss.item())
-            pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
 
-            loss.backward()
-            self.optimizer.step()
-            self.optimizer.zero_grad(set_to_none=True)
+            if self.loss_anomaly_detector(loss.item()):
+                logger.info(f"Anomaly loss detected at epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                del loss, batch
+                return np.nan
+            else:
+                losses.append(loss.item())
+                pbar.set_description(f"epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
+                loss.backward()
+                self.optimizer.step()
+                self.optimizer.zero_grad(set_to_none=True)
 
         loss = float(np.mean(losses))
         logger.info(f'train epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')

@@ -45,8 +45,8 @@ def main(args, base_config, tune_config):
         if spearman > best_spearman:
             best_spearman = spearman
             best_epoch = epoch
+            logger.info(f'best epoch {best_epoch}, spearman {best_spearman}')
         nni.report_intermediate_result(best_spearman)
-        logger.info(f'best epoch {best_epoch}, spearman {best_spearman}')
     nni.report_final_result(best_spearman)
 
 
@@ -61,10 +61,10 @@ if __name__ == '__main__':
     base_config = parse_config(args.config)
 
     params = {
-        "n_patches": 32,
-        "drop_rate": 0.4,
-        "num_hops": 2,
-        "lr": 0.001,
+        "n_patches": 16,
+        "drop_rate": 0.2,
+        "num_hops": 1,
+        "lr": 0.093,
     }
 
     optimized_params = nni.get_next_parameter()
