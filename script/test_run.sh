@@ -28,4 +28,4 @@
 # python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --ckpt_cl results/graph_vit/pretrain_graphvit_cl/model_10_0.229.pt
 
 # NNI HPO
-nnictl create --config ./graphvit_nni_hpo.config --port 8080
+# nnictl create --config ./graphvit_nni_hpo.config --port 8080
