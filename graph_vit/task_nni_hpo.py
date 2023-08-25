@@ -37,11 +37,17 @@ def main(args, base_config, tune_config):
     model = model.to(trainer.device)
     
     logger.info(f"Start training")
+    best_spearman = 0
+    best_epoch = 0
     for epoch in range(args.max_epochs):
         trainer.train_epoch(epoch, model, train_dataloader)
         _, spearman = trainer.eval_epoch(epoch, model, test_dataloader)
-        nni.report_intermediate_result(spearman)
-    nni.report_final_result(spearman)
+        if spearman > best_spearman:
+            best_spearman = spearman
+            best_epoch = epoch
+        nni.report_intermediate_result(best_spearman)
+        logger.info(f'best epoch {best_epoch}, spearman {best_spearman}')
+    nni.report_final_result(best_spearman)
 
 
 if __name__ == '__main__':
