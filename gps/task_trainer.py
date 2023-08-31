@@ -24,7 +24,7 @@ class TaskTrainer:
         self.n_epochs = max_epochs
         self.use_amp = use_amp
         self.task_type = task_type
-        self.loss_anomaly_detector = LossAnomalyDetector()
+        self.loss_anomaly_detector = LossAnomalyDetector(std_fold=20)
         if task_type == 'regression':
             self.loss_fn = nn.MSELoss()
         elif task_type == 'classification':
@@ -66,21 +66,16 @@ class TaskTrainer:
     def run_forward(self, model, batch):
         batch = batch.to(self.device)
         pred, true = model(batch)
-        if self.task_type == 'classification':
-            pred = pred.squeeze(-1) if pred.ndim > 1 else pred
-            true = true.squeeze(-1) if true.ndim > 1 else true
 
-            # logger.debug(f'pred: {pred.shape}, true: {true.shape}')
-            # logger.debug(f'pred: {pred}, true: {true}')
-            loss = self.loss_fn(pred, true)
-            pred = torch.sigmoid(pred)
-            return loss, pred, true
-        elif self.task_type == 'regression':
-            pred, true = pred.squeeze(), true.squeeze()
-            loss = self.loss_fn(pred, true)
-            return loss, pred, true
-        else:
-            raise Exception(f'Unknown task type: {self.task_type}')
+        pred = pred.squeeze(-1) if pred.ndim > 1 else pred
+        true = true.squeeze(-1) if true.ndim > 1 else true
+
+        # logger.debug(f'pred: {pred.shape}, true: {true.shape}')
+        # pred = F.log_softmax(pred, dim=-1)
+        # loss = F.nll_loss(pred.squeeze(), true.squeeze())
+        loss = self.loss_fn(pred, true)
+        pred = torch.sigmoid(pred)
+        return loss, pred, true
     
     def train_epoch(self, epoch, model, train_loader):
         model.train()

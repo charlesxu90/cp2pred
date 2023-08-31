@@ -65,27 +65,23 @@ class TaskTrainer:
 
     def run_forward(self, model, batch):
         batch = batch.to(self.device)
-        pred, true = model(batch)
-        if self.task_type == 'classification':
-            pred = pred.squeeze(-1) if pred.ndim > 1 else pred
-            true = true.squeeze(-1) if true.ndim > 1 else true
+        pred, link_loss, ent_loss = model(batch)
+        true = batch.y
+        is_labeled = batch.y == batch.y
+        pred, true = pred[is_labeled], true[is_labeled]
 
-            # logger.debug(f'pred: {pred.shape}, true: {true.shape}')
-            # logger.debug(f'pred: {pred}, true: {true}')
-            loss = self.loss_fn(pred, true)
-            pred = torch.sigmoid(pred)
-            return loss, pred, true
-        elif self.task_type == 'regression':
-            pred, true = pred.squeeze(), true.squeeze()
-            loss = self.loss_fn(pred, true)
-            return loss, pred, true
-        else:
-            raise Exception(f'Unknown task type: {self.task_type}')
+        pred = pred.squeeze(-1) if pred.ndim > 1 else pred
+        true = true.squeeze(-1) if true.ndim > 1 else true
+
+        loss = self.loss_fn(pred, true)
+        pred = torch.sigmoid(pred)
+        return loss, pred, true
     
     def train_epoch(self, epoch, model, train_loader):
         model.train()
         losses = []
         pbar = tqdm(enumerate(train_loader), total=len(train_loader))
+        # pbar = enumerate(train_loader)
         for it, batch in pbar:
             if self.device == 'cuda':
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
@@ -105,7 +101,6 @@ class TaskTrainer:
                 loss.backward()
                 self.optimizer.step()
                 self.optimizer.zero_grad(set_to_none=True)
-
         loss = float(np.mean(losses))
         logger.info(f'train epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
         self.writer.add_scalar(f'train_loss', loss, epoch + 1)
