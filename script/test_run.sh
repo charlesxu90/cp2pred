@@ -31,5 +31,13 @@
 # python -m graph_vit.task_nni_hpo  --config graph_vit/task_finetune.yaml
 # nnictl create --config ./graphvit_nni_hpo.config --port 8080
 
+#==== GPS ====#
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m gps.task_finetune --config gps/task_finetune.yaml --output_dir results/gps/task_finetune3
+
 #==== Grit ====#
-python -m grit.task_finetune --config grit/task_finetune.yaml --output_dir results/grit/task_finetune3 
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m grit.task_finetune --config grit/task_finetune.yaml --output_dir results/grit/task_finetune3 
+
+#==== MGT ====#
+python -m mgt.task_finetune --config mgt/task_finetune.yaml --output_dir results/mgt/task_finetune_reg2
