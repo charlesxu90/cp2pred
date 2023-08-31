@@ -87,13 +87,13 @@ class BertTrainer:
                     with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                         loss = model.forward(x)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
 
                 if is_train:
                     if self.loss_anomaly_detector(loss.item()):
                         logger.info(f"Anomaly loss detected at epoch {epoch + 1} iter {it}: train loss {loss:.5f}.")
                         del loss, x
                         continue  # Skip the current iteration if the loss is an anomaly
+                    losses.append(loss.item())
                     loss.backward()
                     torch.nn.utils.clip_grad_norm_(model.parameters(), self.grad_norm_clip)
                     optimizer.step()
