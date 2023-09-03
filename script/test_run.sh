@@ -1,6 +1,9 @@
+#==== Split data into 10 folds ====#
+# python utils/splitters.py --raw_data_path data/CycPeptMPDB/raw/all.csv.gz --smi_col smi
+
 #==== Baseline ====#
-# python -m baseline.train --config baseline/config.yaml
-# python -m baseline.train --config baseline/config_cls.yaml
+# python -m baseline.train --config baseline/config_cls.yaml --val_split 5
+python -m baseline.train --config baseline/config_reg.yaml --val_split 1
 
 #==== SMILES BERT ====#
 # Pretrain
@@ -40,4 +43,4 @@
 # python -m grit.task_finetune --config grit/task_finetune.yaml --output_dir results/grit/task_finetune3 
 
 #==== MGT ====#
-python -m mgt.task_finetune --config mgt/task_finetune.yaml --output_dir results/mgt/task_finetune_reg2
+# python -m mgt.task_finetune --config mgt/task_finetune.yaml --output_dir results/mgt/task_finetune_reg2

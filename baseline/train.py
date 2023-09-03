@@ -101,10 +101,10 @@ def plot_scatter_y(y, y_hat, x_label='y', y_label='y_hat', save_path=None, label
         plt.savefig(f'{save_path}_{label}_{mae:.3f}.pdf', dpi=300, bbox_inches='tight')
 
 
-def load_data(config, ):
+def load_data(config, val_split=1):
     logger.info(f"Start loading data")
     data_df = pd.read_csv(osp.join(config.root_path, 'raw', 'all.csv.gz'))
-    split_file = osp.join(config.root_path, "splits_random_stratified_peptide.pickle")
+    split_file = osp.join(config.root_path, 'raw', "scaffold_k_fold_idxes.pkl")
     with open(split_file, 'rb') as f:
         split_idx = pickle.load(f)
 
@@ -133,8 +133,15 @@ def load_data(config, ):
     X = np.concatenate(X_features, axis=1)
     y = data_df[config.label].values
 
-    X_train, X_val, X_test = X[split_idx['train']], X[split_idx['val']], X[split_idx['test']]
-    y_train, y_val, y_test = y[split_idx['train']], y[split_idx['val']], y[split_idx['test']]
+    # assert val_split <= 5 and val_split >= 1, f"val_split should be no smaller than 1 and no greater than 5, but found {val_split}"
+
+    val_idx = split_idx[val_split]
+    test_idx = split_idx[val_split+1] # test split is val_split-1
+    train_splits = [split_idx[i] for i in range(len(split_idx))if i != val_split+1 and i != val_split]  # the rest are training data
+    train_idx = np.concatenate(train_splits, axis=0)
+
+    X_train, X_val, X_test = X[train_idx], X[val_idx], X[test_idx]
+    y_train, y_val, y_test = y[train_idx], y[val_idx], y[test_idx]
     
     return X_train, y_train, X_val, y_val, X_test, y_test
 
@@ -188,8 +195,8 @@ def eval(task_type, model, X_train, y_train, X_val, y_val, X_test, y_test, save_
         get_metrics(y_test, y_hat)
 
 
-def main(config):
-    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.data)
+def main(config, args):
+    X_train, y_train, X_val, y_val, X_test, y_test = load_data(config.data, val_split=args.val_split)
     logger.info(f"Data splits: train {len(X_train)}, val {len(X_val)}, test {len(X_test)}")
     logger.info(f"Total features {X_train.shape[1]}")
     model = init_model(config.model)
@@ -207,9 +214,10 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
     parser.add_argument('--config', default='baseline/config.yaml')
+    parser.add_argument('--val_split', type=int, default=1, help='the split index of validation set, 1-5')
 
     args = parser.parse_args()
     config = parse_config(args.config)
+    logger.info(f"val_split: {args.val_split}")
 
-
-    main(config)
+    main(config, args)

@@ -1,7 +1,7 @@
 data:
   root_path: data/CycPeptMPDB
   processed: true
-  features: dps  #fps, dps or fps,dps
+  features: fps,dps  #fps, dps or fps,dps
   label: is_cpp  # is_cpp or score
 
 model:
