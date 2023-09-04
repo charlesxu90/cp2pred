@@ -11,8 +11,8 @@ from .model.gps_model import GPSModel
 from .task_trainer import TaskTrainer
 
 
-def get_dataloaders(config):
-    train_set, val_set, test_set = create_dataset(config)
+def get_dataloaders(config, val_split):
+    train_set, val_set, test_set = create_dataset(config, val_split)
 
     train_dataloader = DataLoader(train_set, batch_size=config.batch_size, num_workers=config.num_workers, pin_memory=True)
     val_dataloader = DataLoader(val_set, batch_size=config.batch_size, shuffle=False, num_workers=config.num_workers, pin_memory=True)
@@ -25,7 +25,7 @@ def main(args, config):
     set_random_seed(args.seed)
     log_GPU_info()
     
-    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(config.data)
+    train_dataloader, val_dataloader, test_dataloader = get_dataloaders(config.data, args.val_split)
     # nout = 10 # 
     nout = len(config.data.target_col.split(','))
     model = GPSModel(dim_in=config.model.dim_in, dim_out=config.model.dim_out, gnn_config=config.model.gnn, gt_config=config.model.gt)
@@ -52,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--ckpt', default=None, type=str)
     parser.add_argument('--ckpt_cl', default=None, type=str)
+    parser.add_argument('--val_split', type=int, default=1, help='the split index of validation set, 1-5')
     args = parser.parse_args()
 
     Path(args.output_dir).mkdir(parents=True, exist_ok=True)    

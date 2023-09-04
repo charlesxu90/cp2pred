@@ -13,7 +13,7 @@ import torch.nn.functional as F
 class TaskTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda', 
-                 max_epochs=10, use_amp=True, task_type='regression',
+                 max_epochs=10, use_amp=False, task_type='regression',
                  learning_rate=1e-4,lr_patience=20, lr_decay=0.5, min_lr=1e-5, weight_decay=0.0):
         self.model = model
         self.output_dir = output_dir

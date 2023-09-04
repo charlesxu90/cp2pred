@@ -6,9 +6,6 @@ data:
     eigvec_norm: L2
     max_freqs: 10
 
-  # dataset_name: 'Peptides-func'
-  # dataset_dir: data
-
   dataset_name: 'cycpeptmpdb'
   root: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
   smiles_col: 'smi'           # smi
@@ -17,7 +14,6 @@ data:
 
 model:
   dim_in: 9
-  # dim_out: 10
   dim_out: 1
 
   graph_pooling: mean
@@ -39,15 +35,9 @@ model:
     act: relu
     dropout: 0.0
 
-#   cl_model:
-#     enc_width: 128
-#     proj_dim: 256
-#     temp_scale: 0.07
-
 train:  # Training params
   device: 'cuda'                    # device to use for training
   max_epochs: 20                  # *total number of epochs, 200
-  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
   task_type: classification             # task type, 'classification' or 'regression'
   learning_rate: 0.0005              # *learning rate
   lr_patience: 20
