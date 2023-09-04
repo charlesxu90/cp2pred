@@ -13,7 +13,7 @@ import torch.nn.functional as F
 class TaskTrainer:
 
     def __init__(self, model, output_dir, grad_norm_clip=1.0, device='cuda', 
-                 max_epochs=10, use_amp=True, task_type='regression',
+                 max_epochs=10, use_amp=False, task_type='regression',
                  learning_rate=1e-4,lr_patience=20, lr_decay=0.5, min_lr=1e-5, weight_decay=0.0):
         self.model = model
         self.output_dir = output_dir
@@ -132,16 +132,13 @@ class TaskTrainer:
 
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
-        # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
         if self.task_type == 'regression':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-            logger.info(f'{e_type} epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
+            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
             self.writer.add_scalar('spearman', spearman, epoch + 1)
             metric = spearman
         elif self.task_type == 'classification':
-            acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
-            logger.info(f'{e_type} epoch: {epoch+1}, acc: {acc*100:.2f}, pr: {pr*100:.3f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
+            acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{e_type}_acc', acc, epoch + 1)
             metric = mcc
         return loss, metric
 

@@ -6,7 +6,6 @@ from torch_geometric.loader import DataLoader
 from utils.utils import parse_config, set_random_seed, log_GPU_info, load_model
 from .dataset.dataset import create_dataset
 from .model.grit_model import GritTransformer
-from .model.cl_model import CLModel
 from .trainer import TaskTrainer
 
 
