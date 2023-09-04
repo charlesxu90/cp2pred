@@ -1,17 +1,17 @@
 import argparse
 import os
-import logging
 import torch
 import numpy as np
 import random
 from pathlib import Path
+from loguru import logger
 from torch.utils.data import DataLoader
 
 from utils.utils import parse_config, load_model, log_GPU_info
-from .dataset import load_data, UniDataset
-from .tokenizer import SmilesTokenizer, HELMTokenizer
-from .bert import BERT
-from .bert_trainer import BertTrainer
+from .dataset.dataset import load_data, UniDataset
+from .dataset.tokenizer import SmilesTokenizer, HELMTokenizer
+from .model.bert import BERT
+from .model.bert_trainer import BertTrainer
 from torch.utils.data.distributed import DistributedSampler
 from utils.dist import init_distributed, get_rank, is_main_process
 from torch.distributed.elastic.multiprocessing.errors import record
@@ -28,10 +28,6 @@ def main(args, config):
     np.random.seed(seed)
     random.seed(seed)
 
-    log_level = logging.DEBUG if args.debug else logging.INFO
-    logging.basicConfig(format='%(asctime)s - %(message)s', level=log_level)
-    logger = logging.getLogger(__name__)
-    
     if is_main_process():
         log_GPU_info()
     
@@ -45,8 +41,6 @@ def main(args, config):
 
     if config.data.type == 'smiles':
         tokenizer = SmilesTokenizer(max_len=config.data.max_len)
-    elif config.data.type == 'helm':
-        tokenizer = HELMTokenizer(max_len=config.data.max_len)
     else:
         raise Exception(f"Unknown data type: {config.data.type}")
     
@@ -66,7 +60,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default='results/pretrain_smi_bert/')
     parser.add_argument('--device', default='cuda')
     parser.add_argument('--seed', default=42, type=int)
-    parser.add_argument('--debug', action='store_true')
     parser.add_argument('--ckpt', default=None, type=str, help='path to checkpoint to load')
     args = parser.parse_args()
 

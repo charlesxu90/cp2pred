@@ -1,13 +1,13 @@
 data: 
   type: 'smiles'                    # data type, 'smiles' or 'helm' or 'aa_seq'
-  input_path: 'data/CycPeptMPDB/'  # pretrain data folder, contain two files: train.csv and val.csv
+  input_path: 'data/pretrain/merged/'  # pretrain data folder, contain two files: train.csv and val.csv
   feat_col: 'smi'                  
   max_len: 1452                     # *max length after tokenization, set a smaller number (rf. max_position_embeddings) to reduce memory usage
   batch_size: 240                   # *batch size, local 240 1h12min
   num_workers: 2                    # number of workers for data loading
 
 model:  # Model params
-  context_length: 512               # default 600
+  context_length: 512               # default 512
   width: 512
   n_heads: 8
   n_layers: 6
@@ -18,4 +18,3 @@ train:  # Training params
   learning_rate: 0.000005           # *learning rate
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training
-

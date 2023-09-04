@@ -1,11 +1,8 @@
 from collections import OrderedDict
-
+from loguru import logger
 import torch
 from torch import nn
 from torch.utils.checkpoint import checkpoint_sequential
-import logging
-
-logger = logging.getLogger(__name__)
 
 
 class LayerNorm(nn.LayerNorm):
