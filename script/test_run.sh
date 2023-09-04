@@ -22,8 +22,8 @@
 # torchrun --nproc_per_node=2 -m image_mol.pretrain --config image_mol/pretrain_config.yaml --output_dir results/resnet/pretrain2
 
 # Task finetune
-# torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_cls.yaml --output_dir results/resnet/cyc_cpp_cls --ckpt_cl results/resnet/pretrain/model_100_0.027.pt
-torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_reg.yaml --output_dir results/resnet/cyc_cpp_reg --ckpt_cl results/resnet/pretrain/model_100_0.027.pt
+# torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_cls.yaml --output_dir results/resnet/cyc_cpp_cls --ckpt_cl results/resnet/pretrain/model_100_0.027.pt --val_split 1
+# torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_reg.yaml --output_dir results/resnet/cyc_cpp_reg --ckpt_cl results/resnet/pretrain/model_100_0.027.pt --val_split 1
 
 #==== Graph ViT ====#
 # rm -rf data/CycPeptMPDB/processed/*.pt
@@ -50,3 +50,8 @@ torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_reg.yam
 # python -m mgt.train --config mgt/config_cls.yaml --output_dir results/mgt/cyc_cpp_cls --val_split 1
 # python -m mgt.train --config mgt/config_reg.yaml --output_dir results/mgt/cyc_cpp_reg --val_split 1
 
+#==== Mole-BERT ====#
+
+#==== GCN ====#
+
+#==== GINE ====#
