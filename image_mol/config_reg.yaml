@@ -2,8 +2,8 @@ data:
   input_path: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
   batch_size: 80                    # 40 for local, 80 for cluster
   num_workers: 4                    # number of workers for data loading
-  feat_names: 'smi_img'             # smi_img
-  target_col: 'is_cpp'
+  feat_col: 'smi_img'               # smi_img
+  target_col: 'score'
   image_size: 500                   # image size for resnet
 
 model:
@@ -22,4 +22,4 @@ train:  # Training params
   device: 'cuda'                    # device to use for training
   use_amp: true                     # whether to use torch.amp for automatic mixed precision training
   distributed: true                 # whether to use distributed training
-  task_type: classification         # task type, 'classification' or 'regression'
+  task_type: regression             # task type, 'classification' or 'regression'

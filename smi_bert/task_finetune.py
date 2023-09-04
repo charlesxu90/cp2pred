@@ -24,6 +24,7 @@ def get_dataloaders(config, distributed=True, val_split=1, global_rank=0):
     
     train_set, val_set, test_set = load_task_dataset(config.input_path, smiles_col=config.smiles_col, 
                                                      target_col=config.target_col, val_split=val_split)
+    
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank) if distributed else None
     train_dataloader = DataLoader(train_set, batch_size=batch_size, sampler=train_sampler, num_workers=num_workers)
 

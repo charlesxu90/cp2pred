@@ -34,7 +34,7 @@ class TaskTrainer:
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
         self.optimizer = torch.optim.SGD(filter(lambda x: x.requires_grad, raw_model.parameters()), lr=self.learning_rate, )
     
-    def fit(self, train_loader, test_loader=None, save_ckpt=True):
+    def fit(self, train_loader, val_loader=None, test_loader=None, save_ckpt=True):
         model = self.model
         
         if torch.cuda.is_available() and self.device == 'cuda' and self.distributed:  # for distributed parallel
@@ -42,13 +42,15 @@ class TaskTrainer:
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
 
-        best_loss = np.float('inf')
+        best_loss = np.float32('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
+            if val_loader is not None:
+                val_loss = self.eval_epoch(epoch, model, val_loader, split='val')
             if test_loader is not None:
-                test_loss = self.test_epoch(epoch, model, test_loader)
+                test_loss = self.eval_epoch(epoch, model, test_loader, split='test')
 
-            curr_loss = test_loss if 'test_loss' in locals() else train_loss
+            curr_loss = val_loss if 'val_loss' in locals() else train_loss
             
             if self.output_dir is not None and save_ckpt and curr_loss < best_loss:  # only save better loss
                 best_loss = curr_loss
@@ -90,8 +92,9 @@ class TaskTrainer:
         logger.info(f'train epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
         self.writer.add_scalar(f'train_loss', loss, epoch + 1)
         return loss
-    
-    def test_epoch(self, epoch, model, test_loader):
+        
+    @torch.no_grad()
+    def eval_epoch(self, epoch, model, test_loader, split='test'):
         model.eval()
         if self.distributed:
             test_loader.sampler.set_epoch(epoch)   # for distributed parallel
@@ -114,20 +117,18 @@ class TaskTrainer:
                 y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        logger.info(f'test epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-        self.writer.add_scalar(f'test_loss', loss, epoch + 1)
+        logger.info(f'{split} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
+        self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
 
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
         # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
-        if self.task_type == 'regression':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-            logger.info(f'eval, epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
-            self.writer.add_scalar('spearman', spearman, epoch + 1)
-        elif self.task_type == 'classification':
-            acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
-            logger.info(f'eval, epoch: {epoch+1}, acc: {acc*100:.2f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
+        if self.task_type == 'regression' and split == 'test':
+            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
+            self.writer.add_scalar(f'spearman', spearman, epoch + 1)
+        elif self.task_type == 'classification' and split == 'test':
+            acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar('acc', acc, epoch + 1)
 
         return loss
 

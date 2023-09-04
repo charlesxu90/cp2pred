@@ -10,20 +10,20 @@ from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch.distributed.elastic.multiprocessing.errors import record
 
-from utils.utils import parse_config, log_GPU_info
+from utils.utils import parse_config, log_GPU_info, set_random_seed
 from utils.dist import init_distributed, get_rank, is_main_process
 
 from .dataset import load_image_data, ImageDataset
-from .resnet import init_model, load_model_from_ckpt
-from .molcl import MolCL
-from .molcl_trainer import MolCLTrainer
+from .model.resnet import init_model, load_model_from_ckpt
+from .model.molcl import MolCL
+from .model.molcl_trainer import MolCLTrainer
 
 warnings.filterwarnings("ignore", message="torch.distributed._all_gather_base is a private function")
 
 def get_dataloaders(config):
     global_rank = get_rank()
-    train_data, valid_data = load_image_data(config.input_path, feat_names=config.feat_names, target_col=config.target_col,)
-    train_set, test_set = ImageDataset(train_data, image_size=config.image_size), ImageDataset(valid_data, image_size=config.image_size)
+    train_data, valid_data = load_image_data(config.input_path, feat_col=config.feat_col, 
+                                             target_col=config.target_col, image_size=config.image_size)
     train_sampler = DistributedSampler(dataset=train_set, shuffle=True, rank=global_rank)
     train_dataloader = DataLoader(train_set, batch_size=config.batch_size, sampler=train_sampler, num_workers=config.num_workers, pin_memory=True)
 
@@ -31,15 +31,14 @@ def get_dataloaders(config):
     test_dataloader = DataLoader(test_set, batch_size=config.batch_size, sampler=test_sampler, shuffle=False, num_workers=config.num_workers, pin_memory=True)
     return train_dataloader, test_dataloader
 
+
 @record
 def main(args, config):
     init_distributed()
     global_rank = get_rank()
     device = torch.device(args.device)
     seed = args.seed + global_rank
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    random.seed(seed)
+    set_random_seed(seed)
     
     if is_main_process():
         log_GPU_info()

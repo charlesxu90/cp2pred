@@ -34,7 +34,7 @@ class MolCLTrainer:
             local_rank = int(os.environ['LOCAL_RANK'])
             self.model = nn.parallel.DistributedDataParallel(self.model, device_ids=[local_rank])
 
-        best_loss = np.float('inf')
+        best_loss = np.float32('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if test_loader is not None:
@@ -66,7 +66,6 @@ class MolCLTrainer:
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                     loss, _, _ = self.run_forward(model, batch)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
             else:
                 loss, _, _ = self.run_forward(model, batch)
             losses.append(loss.item())

@@ -7,23 +7,23 @@
 
 #==== SMILES BERT ====#
 # Pretrain
-# torchrun --nproc_per_node=2 -m seq_bert.pretrain_bert --config seq_bert/pretrain_smi_bert.yaml --output_dir results/pretrain_smi_bert
+# torchrun --nproc_per_node=2 -m smi_bert.pretrain --config smi_bert/pretrain_config.yaml --output_dir results/smi_bert/pretrain
 
 # Finetune
-# torchrun --nproc_per_node=2 -m seq_bert.pretrain_bert --config seq_bert/smi_bert_finetune.yaml --output_dir results/smi_bert_finetune --ckpt results/pretrain_smi_bert_ibex/model_final_0.384.pt
+# torchrun --nproc_per_node=2 -m smi_bert.pretrain --config smi_bert/pretrain_ft_config.yaml --output_dir results/smi_bert/pretrain_ft --ckpt results/smi_bert/pretrain/model_final_0.384.pt
 
 # Task finetune
-# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_task_finetune.yaml --output_dir results/smi_bert_task_finetune --ckpt results/smi_bert_finetune/model_4_0.348.pt
-# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_cls_task_finetune.yaml --output_dir results/smi_bert_cls_task_finetune --ckpt results/smi_bert_finetune/model_4_0.348.pt
+# torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split 1
+
+# torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_reg.yaml --output_dir results/smi_bert/cyc_cpp_reg --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split 1
 
 #==== ImageMol ResNet ====#
-# Pretrain ResNet with contrastive learning, using ImageNet or ImageMol pretrained weights, 
-# ImageNet is better with size 500x500
-# torchrun --nproc_per_node=2 -m image_mol.pretrain_resnet --config image_mol/pretrain_resnet.yaml --output_dir results/resnet/pretrain_resnet
+# Pretrain ResNet with contrastive learning, using ImageNet pretrained weights, with image size 500x500
+# torchrun --nproc_per_node=2 -m image_mol.pretrain --config image_mol/pretrain_config.yaml --output_dir results/resnet/pretrain2
 
 # Task finetune
-# torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_finetune_resnet.yaml --output_dir results/resnet/task_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt
-# torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_cls_finetune_resnet.yaml --output_dir results/resnet/task_cls_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt
+# torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_cls.yaml --output_dir results/resnet/cyc_cpp_cls --ckpt_cl results/resnet/pretrain/model_100_0.027.pt
+torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_reg.yaml --output_dir results/resnet/cyc_cpp_reg --ckpt_cl results/resnet/pretrain/model_100_0.027.pt
 
 #==== Graph ViT ====#
 # rm -rf data/CycPeptMPDB/processed/*.pt
@@ -41,9 +41,12 @@
 # python -m gps.train --config gps/config_reg.yaml --output_dir results/gps/cyc_cpp_reg --val_split 1
 
 #==== Grit ====#
-rm -rf data/CycPeptMPDB/processed/*.pt
-python -m grit.train --config grit/config_cls.yaml --output_dir results/grit/cyc_cpp_cls --val_split 1
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m grit.train --config grit/config_cls.yaml --output_dir results/grit/cyc_cpp_cls --val_split 1
 # python -m grit.train --config grit/config_reg.yaml --output_dir results/grit/cyc_cpp_reg  --val_split 1
 
 #==== MGT ====#
-# python -m mgt.task_finetune --config mgt/task_finetune.yaml --output_dir results/mgt/task_finetune_reg2
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m mgt.train --config mgt/config_cls.yaml --output_dir results/mgt/cyc_cpp_cls --val_split 1
+# python -m mgt.train --config mgt/config_reg.yaml --output_dir results/mgt/cyc_cpp_reg --val_split 1
+

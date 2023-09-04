@@ -44,10 +44,10 @@ class TaskTrainer:
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if val_loader is not None:
-                val_loss, _ = self.eval_epoch(epoch, model, val_loader, e_type='val')
+                val_loss, _ = self.eval_epoch(epoch, model, val_loader, split='val')
 
             if test_loader is not None:
-                test_loss, _ = self.eval_epoch(epoch, model, test_loader, e_type='test')
+                test_loss, _ = self.eval_epoch(epoch, model, test_loader, split='test')
 
             curr_loss = val_loss if 'val_loss' in locals() else train_loss
             
@@ -107,7 +107,7 @@ class TaskTrainer:
         return loss
     
     @torch.no_grad()
-    def eval_epoch(self, epoch, model, test_loader, e_type='test'):
+    def eval_epoch(self, epoch, model, test_loader, split='test'):
         model.eval()
         losses = []
         y_test = []
@@ -127,8 +127,8 @@ class TaskTrainer:
             y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        logger.info(f'{e_type} epoch: {epoch + 1}, loss: {loss:.4f}')
-        self.writer.add_scalar(f'{e_type}_loss', loss, epoch + 1)
+        logger.info(f'{split} epoch: {epoch + 1}, loss: {loss:.4f}')
+        self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
 
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
@@ -138,7 +138,7 @@ class TaskTrainer:
             metric = spearman
         elif self.task_type == 'classification':
             acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
-            self.writer.add_scalar(f'{e_type}_acc', acc, epoch + 1)
+            self.writer.add_scalar(f'{split}_acc', acc, epoch + 1)
             metric = mcc
         return loss, metric
 
