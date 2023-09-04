@@ -1,4 +1,5 @@
 import argparse
+import warnings
 from loguru import logger
 from pathlib import Path
 from torch_geometric.loader import DataLoader
@@ -6,9 +7,9 @@ from torch_geometric.loader import DataLoader
 from utils.utils import parse_config, set_random_seed, log_GPU_info, load_model
 from .dataset.dataset import create_dataset
 from .model.gps_model import GPSModel
-# from .model.grit_model import GritTransformer
-# from .model.cl_model import CLModel
-from .task_trainer import TaskTrainer
+from .trainer import TaskTrainer
+
+warnings.filterwarnings("ignore")
 
 
 def get_dataloaders(config, val_split):
@@ -32,11 +33,6 @@ def main(args, config):
     
     if args.ckpt is not None:
        model = load_model(model, args.ckpt)
-
-    # if args.ckpt_cl is not None:
-    #    cl_model = CLModel(model, **config.model.cl_model)
-    #    cl_model = load_model(cl_model, args.ckpt_cl)
-    #    model = cl_model.encoder
     
     logger.info(f"Start training")
     trainer = TaskTrainer(model, args.output_dir, **config.train)
