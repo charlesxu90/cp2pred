@@ -33,7 +33,7 @@
 
 # NNI HPO
 # python -m graph_vit.nni_hpo  --config graph_vit/config_reg.yaml  # test
-# nnictl create --config ./graphvit_nni_hpo.config --port 8080
+# nnictl create --config ./nni_graphvit.config --port 8080
 
 #==== GPS ====#
 # rm -rf data/CycPeptMPDB/processed/*.pt
