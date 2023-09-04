@@ -117,7 +117,7 @@ class CycPepDataset(InMemoryDataset):
         return splits
     
 
-def create_cl_dataset(config):
+def create_cl_dataset(config, val_split=1):
     pre_transform = RWSETransform(rw_dim=config.pos_enc.rw_dim)
 
     transform_train = GraphPartitionTransform(n_patches=config.metis.n_patches,
@@ -132,15 +132,22 @@ def create_cl_dataset(config):
                                              patch_num_diff=config.pos_enc.patch_num_diff)
 
     dataset = MolCLDataset(root=config.root, smiles_col=config.smiles_col, pre_transform=pre_transform)
-    
+
     split_idx = dataset.get_idx_split()
-    train_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']]
-    train_dataset.transform, test_dataset.transform = transform_train, transform_eval
+    val_idx = split_idx[val_split]
+    test_idx = split_idx[val_split+1]  # test split is val_split-1
+    train_splits = [split_idx[i] for i in range(len(
+        split_idx))if i != val_split+1 and i != val_split]  # the rest are training data
+    train_idx = np.concatenate(train_splits, axis=0)
+
+    train_dataset, val_dataset, test_dataset = dataset[train_idx], dataset[val_idx], dataset[test_idx]
+    train_dataset.transform, val_dataset.transform = transform_train, transform_eval
 
     torch.set_num_threads(config.num_workers)
-    test_dataset = [x_pair for x_pair in test_dataset]  # Fixed for valid after enumeration
+    # Fixed for valid after enumeration
+    val_dataset = [x_pair for x_pair in val_dataset]
 
-    return train_dataset, test_dataset
+    return train_dataset, val_dataset
 
 
 class MolCLDataset(CycPepDataset):
