@@ -4,9 +4,6 @@ data:
   pos_enc_rrwp:
     ksteps: 17
 
-  # dataset_name: 'Peptides-func'
-  # dataset_dir: data
-
   dataset_name: 'cycpeptmpdb'
   root: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
   smiles_col: 'smi'           # smi
@@ -22,15 +19,9 @@ model:
     dropout: 0.0
     attn_dropout: 0.5
 
-#   cl_model:
-#     enc_width: 128
-#     proj_dim: 256
-#     temp_scale: 0.07
-
 train:  # Training params
   device: 'cuda:1'                    # device to use for training
   max_epochs: 20                  # *total number of epochs, 200
-  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
   task_type: classification             # task type, 'classification' or 'regression'
   learning_rate: 0.001              # *learning rate
   lr_patience: 20

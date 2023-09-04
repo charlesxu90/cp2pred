@@ -105,9 +105,6 @@ class CycPepDataset(InMemoryDataset):
 
     def get_idx_split(self):
         """ Get dataset splits.
-
-        Returns:
-            Dict with 'train', 'val', 'test', splits indices.
         """
         split_file = osp.join(self.root, 'raw', "scaffold_k_fold_idxes.pkl")
         with open(split_file, 'rb') as f:

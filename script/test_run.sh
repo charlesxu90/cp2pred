@@ -3,7 +3,7 @@
 
 #==== Baseline ====#
 # python -m baseline.train --config baseline/config_cls.yaml --val_split 5
-python -m baseline.train --config baseline/config_reg.yaml --val_split 1
+# python -m baseline.train --config baseline/config_reg.yaml --val_split 1
 
 #==== SMILES BERT ====#
 # Pretrain
@@ -26,21 +26,24 @@ python -m baseline.train --config baseline/config_reg.yaml --val_split 1
 # torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_cls_finetune_resnet.yaml --output_dir results/resnet/task_cls_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt
 
 #==== Graph ViT ====#
-# python -m graph_vit.pretrain_graphvit_cl --config graph_vit/pretrain_graphvit_cl.yaml --output_dir results/graph_vit/pretrain_graphvit_cl
-# python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune 
-# python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --ckpt_cl results/graph_vit/pretrain_graphvit_cl/model_10_0.229.pt
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m graph_vit.cl_pretrain --config graph_vit/cl_pretrain_config.yaml --output_dir results/graph_vit/cl_pretrain
+# python -m graph_vit.train --config graph_vit/config_cls.yaml --output_dir results/graph_vit/cyc_cpp_cls  --val_split 1
+# python -m graph_vit.train --config graph_vit/config_reg.yaml --output_dir results/graph_vit/cyc_cpp_reg --val_split 1
 
 # NNI HPO
-# python -m graph_vit.task_nni_hpo  --config graph_vit/task_finetune.yaml
+# python -m graph_vit.nni_hpo  --config graph_vit/config_reg.yaml  # test
 # nnictl create --config ./graphvit_nni_hpo.config --port 8080
 
 #==== GPS ====#
 # rm -rf data/CycPeptMPDB/processed/*.pt
-# python -m gps.task_finetune --config gps/task_finetune.yaml --output_dir results/gps/task_finetune3
+# python -m gps.train --config gps/config_cls.yaml --output_dir results/gps/cyc_cpp_cls --val_split 1
+# python -m gps.train --config gps/config_reg.yaml --output_dir results/gps/cyc_cpp_reg --val_split 1
 
 #==== Grit ====#
-# rm -rf data/CycPeptMPDB/processed/*.pt
-# python -m grit.task_finetune --config grit/task_finetune.yaml --output_dir results/grit/task_finetune3 
+rm -rf data/CycPeptMPDB/processed/*.pt
+python -m grit.train --config grit/config_cls.yaml --output_dir results/grit/cyc_cpp_cls --val_split 1
+# python -m grit.train --config grit/config_reg.yaml --output_dir results/grit/cyc_cpp_reg  --val_split 1
 
 #==== MGT ====#
 # python -m mgt.task_finetune --config mgt/task_finetune.yaml --output_dir results/mgt/task_finetune_reg2
