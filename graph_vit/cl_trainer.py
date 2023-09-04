@@ -12,7 +12,7 @@ from .model.cl_model import CLModel
 class CLTrainer:
 
     def __init__(self, model: CLModel, output_dir, device='cuda', 
-                 max_epochs=10, use_amp=True, grad_norm_clip=1.0, 
+                 max_epochs=10, use_amp=False, grad_norm_clip=1.0, 
                  learning_rate=1e-4,lr_patience=20, lr_decay=0.5, min_lr=1e-5, weight_decay=0.0):
         self.model = model
         self.output_dir = output_dir
@@ -31,7 +31,7 @@ class CLTrainer:
     def fit(self, train_loader, val_loader=None, test_loader=None, save_ckpt=True):
         model = self.model
         
-        best_loss = np.float('inf')
+        best_loss = np.float32('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
             if val_loader is not None:

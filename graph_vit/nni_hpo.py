@@ -2,16 +2,12 @@ import os
 import argparse
 from loguru import logger
 from pathlib import Path
-from torch_geometric.loader import DataLoader
 
-from utils.utils import parse_config, set_random_seed, log_GPU_info, load_model
-from functools import partial
-from .dataset.dataset import create_dataset
+from utils.utils import parse_config, set_random_seed, log_GPU_info
 from .model.model import GraphMLPMixer
-from .task_trainer import TaskTrainer
-from .model.cl_model import CLModel
+from .trainer import TaskTrainer
 
-from .task_finetune import get_dataloaders
+from .train import get_dataloaders
 import nni
 
 

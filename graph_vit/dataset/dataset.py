@@ -15,7 +15,7 @@ from torch_geometric.data import InMemoryDataset
 from .transform import RWSETransform, GraphPartitionTransform
 
 
-def create_dataset(config):
+def create_dataset(config, val_split):
     pre_transform = RWSETransform(rw_dim=config.pos_enc.rw_dim)
 
     transform_train = GraphPartitionTransform(n_patches=config.metis.n_patches,
@@ -32,7 +32,12 @@ def create_dataset(config):
     dataset = CycPepDataset(root=config.root, smiles_col=config.smiles_col, target_col=config.target_col, pre_transform=pre_transform)
 
     split_idx = dataset.get_idx_split()
-    train_dataset, val_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']], dataset[split_idx['test']]
+    val_idx = split_idx[val_split]
+    test_idx = split_idx[val_split+1] # test split is val_split-1
+    train_splits = [split_idx[i] for i in range(len(split_idx))if i != val_split+1 and i != val_split]  # the rest are training data
+    train_idx = np.concatenate(train_splits, axis=0)
+
+    train_dataset, val_dataset, test_dataset = dataset[train_idx], dataset[val_idx], dataset[test_idx]
     train_dataset.transform, val_dataset.transform, test_dataset.transform = transform_train, transform_eval, transform_eval
 
     torch.set_num_threads(config.num_workers)
@@ -104,15 +109,12 @@ class CycPepDataset(InMemoryDataset):
 
     def get_idx_split(self):
         """ Get dataset splits.
-
-        Returns:
-            Dict with 'train', 'val', 'test', splits indices.
         """
-        split_file = osp.join(self.root, "splits_random_stratified_peptide.pickle")
+        split_file = osp.join(self.root, 'raw', "scaffold_k_fold_idxes.pkl")
         with open(split_file, 'rb') as f:
             splits = pickle.load(f)
-        split_dict = replace_numpy_with_torchtensor(splits)
-        return split_dict
+        # split_dict = replace_numpy_with_torchtensor(splits)
+        return splits
     
 
 def create_cl_dataset(config):
