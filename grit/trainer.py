@@ -70,8 +70,6 @@ class TaskTrainer:
             pred = pred.squeeze(-1) if pred.ndim > 1 else pred
             true = true.squeeze(-1) if true.ndim > 1 else true
 
-            # logger.debug(f'pred: {pred.shape}, true: {true.shape}')
-            # logger.debug(f'pred: {pred}, true: {true}')
             loss = self.loss_fn(pred, true)
             pred = torch.sigmoid(pred)
             return loss, pred, true
@@ -124,7 +122,6 @@ class TaskTrainer:
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                     loss, y_hat, y = self.run_forward(model, batch)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
             else:
                 loss, y_hat, y = self.run_forward(model, batch)
             losses.append(loss.item())
@@ -138,16 +135,13 @@ class TaskTrainer:
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
         # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
+        metric = dict()
         if self.task_type == 'regression':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-            logger.info(f'{split} epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
-            self.writer.add_scalar('spearman', spearman, epoch + 1)
-            metric = spearman
+            metric = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-mae', metric['mae'], epoch + 1)
         elif self.task_type == 'classification':
-            acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
-            logger.info(f'{split} epoch: {epoch+1}, acc: {acc*100:.2f}, pr: {pr*100:.3f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
-            metric = mcc
+            metric = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-acc', metric['acc'], epoch + 1)
         return loss, metric
 
     def _save_model(self, base_dir, info, valid_loss):

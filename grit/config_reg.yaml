@@ -1,6 +1,6 @@
 data: 
-  batch_size: 32              # batch size
-  num_workers: 4               # number of workers for data loading
+  batch_size: 16              # batch size
+  num_workers: 4              # number of workers for data loading
   pos_enc_rrwp:
     ksteps: 17
 
@@ -20,11 +20,11 @@ model:
     attn_dropout: 0.5
 
 train:  # Training params
-  device: 'cuda:1'                    # device to use for training
-  max_epochs: 20                  # *total number of epochs, 200
-  task_type: regression             # task type, 'classification' or 'regression'
-  learning_rate: 0.001              # *learning rate
+  device: 'cuda:1'            # device to use for training
+  max_epochs: 200             # *total number of epochs, 200
+  task_type: regression       # task type, 'classification' or 'regression'
+  learning_rate: 0.0003       # *learning rate
   lr_patience: 20
   lr_decay: 0.5
-  min_lr: 1e-6
+  min_lr: 1e-5
   weight_decay: 0.
