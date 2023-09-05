@@ -65,6 +65,9 @@ class TaskTrainer:
 
     def run_forward(self, model, data):
         data = data.to(self.device)
+        if self.task_type == 'classification':
+            data.y = torch.as_tensor(np.array(data.y, dtype=np.bool_)).to(self.device)
+        # logger.debug(f"y, {data.y}")
         mask = ~torch.isnan(data.y)
         y = data.y.squeeze().to(torch.float)
         out = model(data).squeeze()
@@ -127,16 +130,13 @@ class TaskTrainer:
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
         # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
-        if self.task_type == 'regression' and split == 'test':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=False)
-            logger.info(f'{split} epoch: {epoch+1}, spearman: {spearman:.3f}, pearson: {pearson:.3f}, mse: {mse:.3f}, mae: {mae:.3f}')
-            self.writer.add_scalar('spearman', spearman, epoch + 1)
-            metric = spearman
-        elif self.task_type == 'classification' and split == 'test':
-            acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=False)
-            logger.info(f'{split} epoch: {epoch+1}, acc: {acc*100:.2f}, sn: {sn*100:.3f}, sp: {sp:.2f}, mcc: {mcc:.3f}, auroc: {auroc:.3f}')
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
-            metric = mcc
+        metric = dict()
+        if self.task_type == 'regression':
+            metric = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-mae', metric['mae'], epoch + 1)
+        elif self.task_type == 'classification':
+            metric = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-acc', metric['acc'], epoch + 1)
         return loss, metric
 
     def _save_model(self, base_dir, info, valid_loss):

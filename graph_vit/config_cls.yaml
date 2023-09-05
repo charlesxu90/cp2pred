@@ -1,7 +1,7 @@
 data: 
   metis:
-    n_patches: 40           # The number of partitions
-    drop_rate: 0.3          # Whether to randomly drop a set of edges before each metis partition
+    n_patches: 32           # The number of partitions
+    drop_rate: 0.3          # ratio to randomly drop a set of edges before each metis partition
     num_hops: 2             # expanding patches with k hop neighbourhood
 
   pos_enc:
@@ -11,7 +11,6 @@ data:
 
   root: 'data/CycPeptMPDB/'   # data folder, contain two files: train.csv and val.csv
   smiles_col: 'smi'           # smi
-  # target_col: 'score'
   target_col: 'is_cpp'
 
   batch_size: 128              # 
@@ -28,17 +27,12 @@ model:
     dropout: 0.
     mixer_dropout: 0.5
 
-  cl_model:
-    enc_width: 128
-    proj_dim: 256
-    temp_scale: 0.07
-
 train:  # Training params
   device: 'cuda'                    # device to use for training
-  max_epochs: 1000                  # *total number of epochs, 200
-  task_type: classification             # task type, 'classification' or 'regression'
+  max_epochs: 200                   # *total number of epochs, 200
+  task_type: classification         # task type, 'classification' or 'regression'
   learning_rate: 0.001              # *learning rate
   lr_patience: 20
   lr_decay: 0.5
-  min_lr: 1e-6
+  min_lr: 1e-5
   weight_decay: 0.

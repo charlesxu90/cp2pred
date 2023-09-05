@@ -8,8 +8,6 @@ from utils.utils import parse_config, set_random_seed, log_GPU_info, load_model
 from .dataset.dataset import create_dataset
 from .model.model import GraphMLPMixer
 from .trainer import TaskTrainer
-from .model.cl_model import CLModel
-
 
 def get_dataloaders(config, val_split):
     train_set, val_set, test_set = create_dataset(config, val_split)
@@ -33,11 +31,6 @@ def main(args, config):
     if args.ckpt is not None:
        model = load_model(model, args.ckpt)
 
-    if args.ckpt_cl is not None:
-       cl_model = CLModel(model, **config.model.cl_model)
-       cl_model = load_model(cl_model, args.ckpt_cl)
-       model = cl_model.encoder
-    
     logger.info(f"Start training")
     trainer = TaskTrainer(model, args.output_dir, **config.train)
     trainer.fit(train_dataloader, val_dataloader, test_dataloader)
@@ -50,7 +43,6 @@ if __name__ == '__main__':
     parser.add_argument('--output_dir', default='results/graph_vit/task_finetune')
     parser.add_argument('--seed', default=42, type=int)
     parser.add_argument('--ckpt', default=None, type=str)
-    parser.add_argument('--ckpt_cl', default=None, type=str)
     parser.add_argument('--val_split', type=int, default=1, help='the split index of validation set, 1-5')
     args = parser.parse_args()
 
