@@ -70,11 +70,9 @@ class TaskTrainer:
         pred = pred.squeeze(-1) if pred.ndim > 1 else pred
         true = true.squeeze(-1) if true.ndim > 1 else true
 
-        # logger.debug(f'pred: {pred.shape}, true: {true.shape}')
-        # pred = F.log_softmax(pred, dim=-1)
-        # loss = F.nll_loss(pred.squeeze(), true.squeeze())
         loss = self.loss_fn(pred, true)
-        pred = torch.sigmoid(pred)
+        if task_type == 'classification':
+            pred = torch.sigmoid(pred)
         return loss, pred, true
     
     def train_epoch(self, epoch, model, train_loader):
