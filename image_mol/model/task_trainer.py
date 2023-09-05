@@ -7,6 +7,7 @@ from torch import nn
 from loguru import logger
 from torch.utils.tensorboard import SummaryWriter
 from utils.utils import save_model, get_regresssion_metrics, get_metrics
+from utils.dist import is_main_process
 import torch.nn.functional as F
 
 
@@ -89,8 +90,9 @@ class TaskTrainer:
             self.optimizer.zero_grad(set_to_none=True)
 
         loss = float(np.mean(losses))
-        logger.info(f'train epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-        self.writer.add_scalar(f'train_loss', loss, epoch + 1)
+        if is_main_process():
+            logger.info(f'train epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
+            self.writer.add_scalar(f'train_loss', loss, epoch + 1)
         return loss
         
     @torch.no_grad()
@@ -117,19 +119,19 @@ class TaskTrainer:
                 y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        logger.info(f'{split} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-        self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
+        if is_main_process():
+            logger.info(f'{split} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
+            self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
 
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
         # logger.info(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
-        if self.task_type == 'regression' and split == 'test':
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
-            self.writer.add_scalar(f'spearman', spearman, epoch + 1)
-        elif self.task_type == 'classification' and split == 'test':
-            acc, pr, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
-            self.writer.add_scalar('acc', acc, epoch + 1)
-
+        if self.task_type == 'regression' and is_main_process():
+            metric = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-mae', metric['mae'], epoch + 1)
+        elif self.task_type == 'classification' and is_main_process():
+            metric = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-acc', metric['acc'], epoch + 1)
         return loss
 
     def _save_model(self, base_dir, info, valid_loss):

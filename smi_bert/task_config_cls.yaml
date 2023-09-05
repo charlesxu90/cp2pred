@@ -5,7 +5,7 @@ data:
   batch_size: 240                   # *batch size, local 240 1h12min
   num_workers: 2                    # number of workers for data loading
   smiles_col: 'smi'                 # smi
-  target_col: 'score'
+  target_col: 'is_cpp'
 
 model:  # Model params
   bert:

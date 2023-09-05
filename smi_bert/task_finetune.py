@@ -68,7 +68,7 @@ def main(args, config):
 
     logger.info(f"Start training")
     trainer = TaskTrainer(pred_model, args.output_dir, **config.train)
-    trainer.fit(train_dataloader, test_dataloader, val_dataloader)
+    trainer.fit(train_dataloader, val_dataloader, test_dataloader)
     logger.info(f"Training finished")
     
 

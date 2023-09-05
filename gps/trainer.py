@@ -71,8 +71,6 @@ class TaskTrainer:
         true = true.squeeze(-1) if true.ndim > 1 else true
 
         loss = self.loss_fn(pred, true)
-        if self.task_type == 'classification':
-            pred = torch.sigmoid(pred)
         return loss, pred, true
     
     def train_epoch(self, epoch, model, train_loader):

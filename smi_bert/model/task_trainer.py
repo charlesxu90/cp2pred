@@ -35,7 +35,7 @@ class TaskTrainer:
         raw_model = self.model.module if hasattr(self.model, "module") else self.model
         self.optimizer = raw_model.configure_optimizers(self.learning_rate)
     
-    def fit(self, train_loader, test_loader=None, save_ckpt=True):
+    def fit(self, train_loader, val_loader=None, test_loader=None, save_ckpt=True):
         model = self.model
         
         if torch.cuda.is_available() and self.device == 'cuda' and self.distributed:  # for distributed parallel
@@ -46,8 +46,11 @@ class TaskTrainer:
         best_loss = np.float32('inf')
         for epoch in range(self.n_epochs):
             train_loss = self.train_epoch(epoch, model, train_loader)
+            if val_loader is not None:
+                val_loss = self.eval_epoch(epoch, model, val_loader, split='val')
+
             if test_loader is not None:
-                test_loss = self.test_epoch(epoch, model, test_loader)
+                test_loss = self.eval_epoch(epoch, model, test_loader, split='test')
 
             curr_loss = test_loss if 'test_loss' in locals() else train_loss
             
@@ -93,7 +96,7 @@ class TaskTrainer:
         self.writer.add_scalar(f'train_loss', loss, epoch + 1)
         return loss
     
-    def test_epoch(self, epoch, model, test_loader):
+    def eval_epoch(self, epoch, model, test_loader, split='test'):
         model.eval()
         if self.distributed:
             test_loader.sampler.set_epoch(epoch)   # for distributed parallel
@@ -116,18 +119,18 @@ class TaskTrainer:
                 y_test.append(y.cpu().numpy())
 
         loss = float(np.mean(losses))
-        self.writer.add_scalar(f'test_loss', loss, epoch + 1)
+        if is_main_process():
+            logger.info(f'{split} epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
+            self.writer.add_scalar(f'{split}_loss', loss, epoch + 1)
 
         y_test = np.concatenate(y_test, axis=0)
         y_test_hat = np.concatenate(y_test_hat, axis=0)
         if self.task_type == 'regression' and is_main_process():
-            logger.info(f'test epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            mae, mse, _, spearman, pearson = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
-            self.writer.add_scalar('spearman', spearman, epoch + 1)
+            metric = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-mae', metric['mae'], epoch + 1)
         elif self.task_type == 'classification' and is_main_process():
-            logger.info(f'test epoch: {epoch + 1}/{self.n_epochs}, loss: {loss:.4f}')
-            acc, sn, sp, mcc, auroc = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
-            self.writer.add_scalar('mcc', mcc, epoch + 1)
+            metric = get_metrics(y_test_hat > 0.5, y_test, print_metrics=True)
+            self.writer.add_scalar(f'{split}-acc', metric['acc'], epoch + 1)
 
         return loss
 

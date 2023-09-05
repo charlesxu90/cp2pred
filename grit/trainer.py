@@ -71,7 +71,6 @@ class TaskTrainer:
             true = true.squeeze(-1) if true.ndim > 1 else true
 
             loss = self.loss_fn(pred, true)
-            pred = torch.sigmoid(pred)
             return loss, pred, true
         elif self.task_type == 'regression':
             pred, true = pred.squeeze(), true.squeeze()
