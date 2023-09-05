@@ -68,28 +68,6 @@ def log_GPU_info():
     logger.info(f'GPU name: {torch.cuda.get_device_name(0)}')
     logger.info(f'GPU memory: {torch.cuda.get_device_properties(0).total_memory / 1024 ** 3} GB')
 
-def get_metrics(y_hat, y_test, print_metrics=True):
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, matthews_corrcoef, roc_auc_score
-
-    # logger.debug(f'y_hat: {y_hat}, y_test: {y_test}')
-    nas = np.logical_or(np.isnan(y_hat), np.isnan(y_test))
-    y_hat, y_test = y_hat[~nas].squeeze(), y_test[~nas].squeeze()
-    
-    if len(y_hat) == 0 or len(y_test) == 0:
-        return np.nan, np.nan, np.nan, np.nan, np.nan
-    
-    acc = accuracy_score(y_test, y_hat)
-    pr = precision_score(y_test, y_hat)
-    sn = recall_score(y_test, y_hat)
-    sp = recall_score(y_test, y_hat, pos_label=0)
-    mcc = matthews_corrcoef(y_test, y_hat)
-    auroc = roc_auc_score(y_test, y_hat)
-    
-    if print_metrics:
-        print(f'Acc(%) \t Pr(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
-        print(f'{acc*100:.2f}\t{pr*100:.2f}\t{sn*100:.2f}\t{sp*100:.2f}\t{mcc:.3f}\t{auroc:.3f}')
-    return acc, pr, sn, sp, mcc, auroc
-
 class ContrastiveLoss(torch.nn.Module):
     def __init__(self, margin=1.0):
         super(ContrastiveLoss, self).__init__()
@@ -101,15 +79,41 @@ class ContrastiveLoss(torch.nn.Module):
                           (label) * torch.pow(torch.clamp(self.margin - dist, min=0.0), 2))
         return loss
 
-def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
-    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-    from scipy import stats
-    # logger.info(f'y_hat: {y_hat}, y_test: {y_test}')
+def get_metrics(y_hat, y_test, print_metrics=True):
+    """ Report metrics: acc, pr, sn, sp, mcc, auroc, core metric 'acc' """
+
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, matthews_corrcoef, roc_auc_score
+
+    # logger.debug(f'y_hat: {y_hat}, y_test: {y_test}')
     nas = np.logical_or(np.isnan(y_hat), np.isnan(y_test))
     y_hat, y_test = y_hat[~nas].squeeze(), y_test[~nas].squeeze()
     
     if len(y_hat) == 0 or len(y_test) == 0:
-        return np.nan, np.nan, np.nan, np.nan, np.nan
+        return {'acc': np.nan, 'pr': np.nan, 'sn':  np.nan, 'sp': np.nan, 'mcc': np.nan, 'auroc': np.nan, 'core': np.nan}
+    
+    acc = accuracy_score(y_test, y_hat)
+    pr = precision_score(y_test, y_hat)
+    sn = recall_score(y_test, y_hat)
+    sp = recall_score(y_test, y_hat, pos_label=0)
+    mcc = matthews_corrcoef(y_test, y_hat)
+    auroc = roc_auc_score(y_test, y_hat)
+    
+    if print_metrics:
+        print(f'Acc(%) \t Pr(%) \t Sn(%) \t Sp(%) \t MCC \t AUROC')
+        print(f'{acc*100:.2f}\t{pr*100:.2f}\t{sn*100:.2f}\t{sp*100:.2f}\t{mcc:.3f}\t{auroc:.3f}')
+    return {'acc': acc, 'pr': pr, 'sn':  sn, 'sp': sp, 'mcc': mcc, 'auroc': auroc, 'core': acc}
+
+def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
+    """ Report metrics: mae, mse, r2, spearman, pearson, core metric 'mae' """
+
+    from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+    from scipy import stats
+    # logger.debug(f'y_hat: {y_hat}, y_test: {y_test}')
+    nas = np.logical_or(np.isnan(y_hat), np.isnan(y_test))
+    y_hat, y_test = y_hat[~nas].squeeze(), y_test[~nas].squeeze()
+    
+    if len(y_hat) == 0 or len(y_test) == 0:
+        return {'mae': np.nan, 'mse': np.nan, 'r2': np.nan, 'spearman': np.nan, 'pearson': np.nan, 'core': np.nan}
     
     mae = mean_absolute_error(y_test, y_hat)
     mse = mean_squared_error(y_test, y_hat)
@@ -120,7 +124,7 @@ def get_regresssion_metrics(y_hat, y_test, print_metrics=True):
     if print_metrics:
         print(f'MAE \t MSE \t R2 \t Spearman \t Pearson')
         print(f'{mae:.3f}\t{mse:.3f}\t{r2:.3f}\t{spearman.correlation:.3f}\t{pearson[0]:.3f}')
-    return mae, mse, r2, spearman.correlation, pearson[0]
+    return {'mae': mae, 'mse': mse, 'r2':  r2, 'spearman': spearman.correlation, 'pearson': pearson[0], 'core': mae}
 
 
 def count_params(model):
