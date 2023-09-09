@@ -50,7 +50,7 @@
 # python -m mole-bert.pretrain --config mole-bert/pretrain.yaml --output_dir results/mole-bert/pretrain --vae_ckpt results/mole-bert/train_vae/model_38_0.121.pt
 # rm -rf data/CycPeptMPDB/processed/*.pt
 # python -m mole-bert.task_finetune --config mole-bert/config_cls.yaml --output_dir results/mole-bert/cyc_cpp_cls  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split 1
-python -m mole-bert.task_finetune --config mole-bert/config_reg.yaml --output_dir results/mole-bert/cyc_cpp_reg  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split 1
+# python -m mole-bert.task_finetune --config mole-bert/config_reg.yaml --output_dir results/mole-bert/cyc_cpp_reg  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split 1
 
 #==== GCN ====#
 

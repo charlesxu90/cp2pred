@@ -138,7 +138,7 @@ class TaskTrainer:
 
         y_test = np.concatenate(y_test, axis=0).squeeze()
         y_test_hat = np.concatenate(y_test_hat, axis=0).squeeze()
-        # logger.debug(f'y_test: {y_test.shape}, y_test_hat: {y_test_hat.shape}')
+        # logger.debug(f'y_test: {y_test}, y_test_hat: {y_test_hat}')
         if self.task_type == 'regression':
             metric = get_regresssion_metrics(y_test_hat, y_test, print_metrics=True)
             self.writer.add_scalar(f'{split}-mae', metric['mae'], epoch + 1)

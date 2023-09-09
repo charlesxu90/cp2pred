@@ -18,7 +18,7 @@ warnings.filterwarnings("ignore")
 
 def load_data(config, val_split=1):
     batch_size, num_workers = config.batch_size, config.num_workers
-    dataset = CycPepDataset(config.root)
+    dataset = CycPepDataset(config.root, smiles_col=config.smiles_col, target_col=config.target_col)
 
     split_file = osp.join(config.root, 'raw', "scaffold_k_fold_idxes.pkl")
     with open(split_file, 'rb') as f:
