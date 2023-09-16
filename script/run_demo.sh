@@ -53,5 +53,13 @@
 # python -m mole-bert.task_finetune --config mole-bert/config_reg.yaml --output_dir results/mole-bert/cyc_cpp_reg  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split 1
 
 #==== GCN ====#
+# rm -rf data/CycPeptMPDB/processed/*.pt
+python -m gcn.train --config gcn/config_cls.yaml --output_dir results/gcn/cyc_cpp_cls --val_split 1
+# python -m gcn.train --config gcn/config_reg.yaml --output_dir results/gcn/cyc_cpp_reg --val_split 1
 
 #==== GINE ====#
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m gine.pretrain_contextpred --config gine/pretrain_contextpred.yaml --output_dir results/gine/pretrain_contextpred
+# python -m gine.pretrain_graphpred --config gine/pretrain_graphpred.yaml --output_dir results/gine/pretrain_graphpred --ckpt_pretrain results/gine/pretrain/pretrain_contextpred2.pth
+# python -m gine.task_finetune --config gine/config_cls.yaml --output_dir results/gine/config_cls --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split 1
+# python -m gine.task_finetune --config gine/config_reg.yaml --output_dir results/gine/config_reg --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split 1
