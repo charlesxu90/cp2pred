@@ -1,8 +1,4 @@
-import hashlib
 import os
-import os.path as osp
-import pickle
-import shutil
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
@@ -12,28 +8,9 @@ from rdkit.Chem import AllChem
 from itertools import repeat
 
 import torch
-from ogb.utils import smiles2graph
-from ogb.utils.torch_util import replace_numpy_with_torchtensor
-from ogb.utils.url import decide_download
-from torch_geometric.data import Data, InMemoryDataset, download_url
+from torch_geometric.data import Data, InMemoryDataset
 
 from utils.graph_utils import log_loaded_dataset
-
-def create_dataset(config):
-    pre_transform = None
-        
-    dataset = PeptidesFunctionalDataset(config.dataset_dir, pre_transform=pre_transform)
-    log_loaded_dataset(dataset)
-
-    split_idx = dataset.get_idx_split()
-    dataset.split_idxs = [split_idx[s] for s in ['train', 'val', 'test']]
-    train_dataset, val_dataset, test_dataset = dataset[split_idx['train']], dataset[split_idx['val']], dataset[split_idx['test']]
-    
-    torch.set_num_threads(config.num_workers)
-    val_dataset = [x for x in val_dataset]  # Fixed for valid after enumeration
-    test_dataset = [x for x in test_dataset]
-
-    return train_dataset, val_dataset, test_dataset
 
 # allowable node and edge features
 allowable_features = {
@@ -112,68 +89,6 @@ def mol_to_graph_data_obj_simple(mol):
     data = Data(x=x, edge_index=edge_index, edge_attr=edge_attr)
 
     return data
-
-
-class ZincDataset(InMemoryDataset):
-    def __init__(self,
-                 root,
-                 transform=None,
-                 pre_transform=None,
-                 pre_filter=None,):
-        self.root = root
-        super(ZincDataset, self).__init__(root, transform, pre_transform, pre_filter)
-        self.transform, self.pre_transform, self.pre_filter = transform, pre_transform, pre_filter
-
-        logger.info(f"Processed data path: {self.processed_paths[0]}")
-        self.data, self.slices = torch.load(self.processed_paths[0])
-
-    @property
-    def raw_file_names(self):
-        return 'zinc_combined_apr_8_2019.csv.gz'
-    
-    @property
-    def processed_file_names(self):
-        return 'geometric_data_processed.pt'
-
-    def download(self):
-        pass
-
-    def process(self):
-        data_smiles_list = []
-        data_list = []
-        
-        input_path = self.raw_paths[0]
-        input_df = pd.read_csv(input_path, sep=',', compression='gzip', dtype='str')
-        smiles_list = list(input_df['smiles'])
-        zinc_id_list = list(input_df['zinc_id'])
-        for i in tqdm(range(len(smiles_list))):
-            s = smiles_list[i]
-            # each example contains a single species
-            try:
-                rdkit_mol = AllChem.MolFromSmiles(s)
-                if rdkit_mol != None:  # ignore invalid mol objects
-                    data = mol_to_graph_data_obj_simple(rdkit_mol)
-                    # manually add mol id
-                    id = int(zinc_id_list[i].split('ZINC')[1].lstrip('0'))
-                    data.id = torch.tensor([id])  # id here is zinc id value, stripped of leading zeros
-                    data_list.append(data)
-                    data_smiles_list.append(smiles_list[i])
-            except:
-                continue
-
-        if self.pre_filter is not None:
-            data_list = [data for data in data_list if self.pre_filter(data)]
-
-        if self.pre_transform is not None:
-            data_list = [self.pre_transform(data) for data in data_list]
-
-        # write data_smiles_list in processed paths
-        data_smiles_series = pd.Series(data_smiles_list)
-        data_smiles_series.to_csv(os.path.join(self.processed_dir, 'smiles.csv'), index=False, header=False)
-
-        data, slices = self.collate(data_list)
-        logger.info('Saving...')
-        torch.save((data, slices), self.processed_paths[0])
 
 
 class CycPepDataset(InMemoryDataset):
