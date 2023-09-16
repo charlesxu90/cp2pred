@@ -2,13 +2,10 @@ from rdkit import Chem
 import re
 import copy
 import pandas as pd
-import logging
+from loguru import logger
 
 from rdkit import RDLogger
 RDLogger.DisableLog('rdApp.*')
-
-logging.basicConfig(format='%(asctime)s - %(message)s', level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Relabel R_group: `'*:_R1'` to `'*:1'` or vice verse
 
