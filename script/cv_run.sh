@@ -1,27 +1,25 @@
 #==== 5 fold CV ====#
-# torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split 1
 
-# torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_reg.yaml --output_dir results/smi_bert/cyc_cpp_reg --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split 1
+# rm -rf data/CycPeptMPDB/processed/*.pt
+# python -m gcn.train --config gcn/config_cls.yaml --output_dir results/gcn/cyc_cpp_cls --val_split 1
+# python -m gcn.train --config gcn/config_reg.yaml --output_dir results/gcn/cyc_cpp_reg --val_split 1
 
 # i=1
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_reg.yaml --output_dir results/smi_bert/cyc_cpp_reg_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_reg_$i.log &
+# nohup python -m gcn.train --config gcn/config_reg.yaml --output_dir results/gcn/cyc_cpp_reg_$i --val_split $i 2>&1 >results/gcn/gcn_reg_$i.log &
 
-# i=5
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_reg.yaml --output_dir results/smi_bert/cyc_cpp_reg_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_reg_$i.log &
-
-# i=2 # 1
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_cls_$i.log &
-
-# sleep 60m
-# i=3
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_cls_$i.log &
-
-# sleep 60m
-# i=4
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_cls_$i.log &
-
-# sleep 60m
-# i=5
-# nohup torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/task_config_cls.yaml --output_dir results/smi_bert/cyc_cpp_cls_$i --ckpt results/smi_bert/pretrain_ft/model_19_0.221.pt --val_split $i 2>&1 >results/smi_bert/smi_bert_cls_$i.log &
+for i in {2..5};
+do
+nohup python -m gcn.train --config gcn/config_reg.yaml --output_dir results/gcn/cyc_cpp_reg_$i --val_split $i 2>&1 >results/gcn/gcn_reg_$i.log &
+done
 
 
+# python -m gine.task_finetune --config gine/config_cls.yaml --output_dir results/gine/config_cls --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split 1
+# python -m gine.task_finetune --config gine/config_reg.yaml --output_dir results/gine/config_reg --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split 1
+
+# i=1
+# nohup python -m gine.task_finetune --config gine/config_reg.yaml --output_dir results/gine/config_reg_$i --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split $i 2>&1 >results/gine/gine_reg_$i.log &
+
+for i in {2..5};
+do
+nohup python -m gine.task_finetune --config gine/config_reg.yaml --output_dir results/gine/config_reg_$i --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split $i 2>&1 >results/gine/gine_reg_$i.log &
+done

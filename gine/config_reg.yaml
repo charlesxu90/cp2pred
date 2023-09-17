@@ -3,7 +3,7 @@ data:
   batch_size: 32              # batch size
   num_workers: 4               # number of workers for data loading
   smiles_col: 'smi'           # smi
-  target_col: 'is_cpp'
+  target_col: 'score'
   mask_edge: True
   mask_rate1: 0.15
   mask_rate2: 0.30
@@ -18,7 +18,7 @@ model:
   graph_pooling: mean
 
 train:  # Training params
-  task_type: classification
+  task_type: regression
   device: 'cuda:1'                    # device to use for training
   max_epochs: 100                    # *total number of epochs, 200
   learning_rate: 0.001              # *learning rate

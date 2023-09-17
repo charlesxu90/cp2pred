@@ -28,6 +28,8 @@ class TaskTrainer:
             self.loss_fn = nn.BCEWithLogitsLoss()
         elif task_type == 'pretrain_graphpred':
             self.loss_fn = nn.BCEWithLogitsLoss(reduction="none")
+        elif task_type == 'regression':
+            self.loss_fn = nn.MSELoss()
 
         self.optimizer = model.config_optimizer(lr=learning_rate, weight_decay=weight_decay)
         self.scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(self.optimizer, mode='min', factor=lr_decay, patience=lr_patience, verbose=True)
