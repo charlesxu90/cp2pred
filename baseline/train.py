@@ -99,6 +99,7 @@ def plot_scatter_y(y, y_hat, x_label='y', y_label='y_hat', save_path=None, label
     plt.ylabel(y_label)
     if save_path is not None:
         plt.savefig(f'{save_path}_{label}_{mae:.3f}.pdf', dpi=300, bbox_inches='tight')
+    plt.close()
 
 
 def load_data(config, val_split=1):
