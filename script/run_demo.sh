@@ -3,7 +3,7 @@
 
 #==== Baseline ====#
 # python -m baseline.train --config baseline/config_cls.yaml --val_split 5
-# python -m baseline.train --config baseline/config_reg.yaml --val_split 1
+python -m baseline.train --config baseline/config_reg.yaml --val_split 6
 
 #==== SMILES BERT ====#
 # Pretrain
@@ -54,7 +54,7 @@
 
 #==== GCN ====#
 # rm -rf data/CycPeptMPDB/processed/*.pt
-python -m gcn.train --config gcn/config_cls.yaml --output_dir results/gcn/cyc_cpp_cls --val_split 1
+# python -m gcn.train --config gcn/config_cls.yaml --output_dir results/gcn/cyc_cpp_cls --val_split 1
 # python -m gcn.train --config gcn/config_reg.yaml --output_dir results/gcn/cyc_cpp_reg --val_split 1
 
 #==== GINE ====#

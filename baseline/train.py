@@ -92,8 +92,8 @@ def get_pep_dps(smi_list):
 
 def plot_scatter_y(y, y_hat, x_label='y', y_label='y_hat', save_path=None, label='test'):
     plt.scatter(y, y_hat, alpha=0.1)
-    mae, _, _, _, _ = get_regresssion_metrics(y, y_hat)
-    mae = np.mean(np.abs(y - y_hat))
+    metric = get_regresssion_metrics(y, y_hat)
+    mae =  metric['mae']
     logger.info(f'{label} MAE: {mae:.3f}, y mean: {np.mean(y):.3f}, y_hat mean: {np.mean(y_hat):.3f}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
