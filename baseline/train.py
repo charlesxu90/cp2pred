@@ -137,7 +137,7 @@ def load_data(config, val_split=1):
     # assert val_split <= 5 and val_split >= 1, f"val_split should be no smaller than 1 and no greater than 5, but found {val_split}"
 
     val_idx = split_idx[val_split]
-    test_idx = split_idx[val_split+1] # test split is val_split-1
+    test_idx = split_idx[val_split+1] # test split is val_split+1
     train_splits = [split_idx[i] for i in range(len(split_idx))if i != val_split+1 and i != val_split]  # the rest are training data
     train_idx = np.concatenate(train_splits, axis=0)
 

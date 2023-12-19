@@ -54,10 +54,37 @@
 # done
 
 ## Graph ViT
-# i=1
-# nohup python -m graph_vit.train --config graph_vit/config_kras.yaml --output_dir results/graph_vit/kras_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_reg_$i.log &
-
-for i in {2..5};
-do
+i=2
 nohup python -m graph_vit.train --config graph_vit/config_kras.yaml --output_dir results/graph_vit/kras_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_reg_$i.log &
-done
+
+# for i in {2..5};
+# do
+# nohup python -m graph_vit.train --config graph_vit/config_kras.yaml --output_dir results/graph_vit/kras_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_reg_$i.log &
+# done
+
+## Grit
+# i=1
+# nohup python -m grit.train --config grit/config_kras.yaml --output_dir results/grit/kras_reg_$i --val_split $i 2>&1 >results/grit/kras_reg_$i.log &
+
+# for i in {2..5};
+# do
+# nohup python -m grit.train --config grit/config_kras.yaml --output_dir results/grit/kras_reg_$i --val_split $i 2>&1 >results/grit/kras_reg_$i.log &
+# done
+
+## MGT
+# i=1
+# nohup python -m mgt.train --config mgt/config_kras.yaml --output_dir results/mgt/kras_reg_$i --val_split $i 2>&1 >results/mgt/kras_reg_$i.log &
+
+# for i in {2..5};
+# do
+# nohup python -m mgt.train --config mgt/config_kras.yaml --output_dir results/mgt/kras_reg_$i --val_split $i 2>&1 >results/mgt/kras_reg_$i.log &
+# done
+
+## Mole-BERT
+# i=1
+# nohup python -m mole-bert.task_finetune --config mole-bert/config_kras.yaml --output_dir results/mole-bert/kras_reg_$i  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split $i 2>&1 >results/mole-bert/kras_reg_$i.log &
+
+# for i in {2..5};
+# do
+# nohup python -m mole-bert.task_finetune --config mole-bert/config_kras.yaml --output_dir results/mole-bert/kras_reg_$i  --ckpt_cl results/mole-bert/pretrain/model_1.pt --val_split $i 2>&1 >results/mole-bert/kras_reg_$i.log &
+# done
