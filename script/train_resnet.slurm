@@ -8,7 +8,6 @@
 #SBATCH --partition=batch
 #SBATCH --output=log-%x-%j.out
 #SBATCH --error=log-%x-%j.out
-#SBATCH --reservation=A100
 
 module purge
 module load gcc/11.1.0
