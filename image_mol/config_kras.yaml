@@ -1,0 +1,25 @@
+data: 
+  input_path: 'data/kras/'   # data folder, contain two files: train.csv and val.csv
+  batch_size: 80                    # 40 for local, 80 for cluster
+  num_workers: 4                    # number of workers for data loading
+  feat_col: 'smi_img'               # smi_img
+  target_col: 'score'
+  image_size: 500                   # image size for resnet
+
+model:
+  resnet:
+    num_classes: 1                  # number of classes
+    pretrained: true                # whether to use pretrained model
+    model_name: 'ResNet50'          # model name, 'ResNet18', 'ResNet50'
+  molcl:
+    enc_width: 2048
+    proj_dim: 256
+    temp_scale: 0.07
+
+train:  # Training params
+  max_epochs: 100                   # *total number of epochs
+  learning_rate: 0.005              # *learning rate
+  device: 'cuda'                    # device to use for training
+  use_amp: true                     # whether to use torch.amp for automatic mixed precision training
+  distributed: true                 # whether to use distributed training
+  task_type: regression             # task type, 'classification' or 'regression'

@@ -1,9 +1,16 @@
 #==== Split data into 10 folds ====#
 # python utils/splitters.py --raw_data_path data/CycPeptMPDB/raw/all.csv.gz --smi_col smi
+# python utils/splitters.py --raw_data_path data/kras/raw/all.csv.gz --smi_col smi
 
 #==== Baseline ====#
 # python -m baseline.train --config baseline/config_cls.yaml --val_split 5
-python -m baseline.train --config baseline/config_reg.yaml --val_split 6
+# python -m baseline.train --config baseline/config_reg.yaml --val_split 5
+# python -m baseline.train --config baseline/config_kras.yaml --val_split 1
+# for i in 2 3 4 5; 
+# do
+#     python -m baseline.train --config baseline/config_kras.yaml --val_split $i;
+# done
+
 
 #==== SMILES BERT ====#
 # Pretrain

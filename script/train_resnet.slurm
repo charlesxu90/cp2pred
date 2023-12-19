@@ -19,8 +19,9 @@ conda activate /ibex/user/xux/pep-pred/env
 # torchrun --nproc_per_node=2 -m image_mol.pretrain_resnet --config image_mol/pretrain_resnet.yaml --output_dir results/resnet/pretrain_resnet
 
 # Task finetune
-torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_cls.yaml --output_dir results/resnet/cyc_cpp_cls --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt --val_split 1
+# torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_cls.yaml --output_dir results/resnet/cyc_cpp_cls --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt --val_split 1
 
-# torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_finetune_resnet.yaml --output_dir results/resnet/task_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt
-# torchrun --nproc_per_node=2 -m image_mol.task_finetune_resnet --config image_mol/task_cls_finetune_resnet.yaml --output_dir results/resnet/task_cls_finetune --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt
+i=1
 
+echo "split = $i in image_mol"
+torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_kras.yaml --output_dir results/resnet/kras_reg_$i --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt --val_split $i
