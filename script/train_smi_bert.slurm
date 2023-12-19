@@ -22,5 +22,8 @@ conda activate /ibex/user/xux/pep-pred/env
 # torchrun --nproc_per_node=2 -m seq_bert.pretrain_bert --config seq_bert/smi_bert_finetune.yaml --output_dir results/smi_bert/smi_bert_finetune --ckpt results/smi_bert/pretrain_smi_bert_ibex/model_final_0.384.pt
 
 # Task finetune
-torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_task_finetune.yaml --output_dir results/smi_bert/smi_bert_task_finetune --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt
-torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_cls_task_finetune.yaml --output_dir results/smi_bert/smi_bert_cls_task_finetune --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt
+# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_task_finetune.yaml --output_dir results/smi_bert/smi_bert_task_finetune --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt
+# torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_cls_task_finetune.yaml --output_dir results/smi_bert/smi_bert_cls_task_finetune --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt
+
+i=1
+torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/kras_config_reg.yaml --output_dir results/smi_bert/kras_reg_$i --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt --val_split $i
