@@ -5,10 +5,11 @@
 #==== Baseline ====#
 # python -m baseline.train --config baseline/config_cls.yaml --val_split 5
 # python -m baseline.train --config baseline/config_reg.yaml --val_split 5
-# python -m baseline.train --config baseline/config_kras.yaml --val_split 1
-# for i in 2 3 4 5; 
+i=1
+python -m baseline.train --config baseline/config_kras.yaml --val_split $i --transform true --output_dir results/baseline/kras_$i
+# for i in {6..8}; 
 # do
-#     python -m baseline.train --config baseline/config_kras.yaml --val_split $i;
+#     python -m baseline.train --config baseline/config_kras.yaml --val_split $i --transform true --output_dir results/baseline/kras_rf_$i
 # done
 
 

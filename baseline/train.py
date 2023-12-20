@@ -14,6 +14,7 @@ from rdkit.Chem import AllChem
 from rdkit.Chem import Descriptors, rdMolDescriptors
 from xgboost import XGBRegressor, XGBClassifier
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.preprocessing import StandardScaler
 
 
 from utils.utils import get_regresssion_metrics, parse_config, get_metrics
@@ -97,8 +98,8 @@ def plot_scatter_y(y, y_hat, x_label='y', y_label='y_hat', save_path=None, label
     logger.info(f'{label} MAE: {mae:.3f}, y mean: {np.mean(y):.3f}, y_hat mean: {np.mean(y_hat):.3f}')
     plt.xlabel(x_label)
     plt.ylabel(y_label)
-    if save_path is not None:
-        plt.savefig(f'{save_path}_{label}_{mae:.3f}.pdf', dpi=300, bbox_inches='tight')
+    # if save_path is not None:
+    #     plt.savefig(f'{save_path}_{label}_{mae:.3f}.pdf', dpi=300, bbox_inches='tight')
     plt.close()
 
 
@@ -202,11 +203,20 @@ def main(config, args):
     logger.info(f"Total features {X_train.shape[1]}")
     model = init_model(config.model)
     logger.info(f'Training {config.model.model_type} model on {config.model.task_type} task ...')
+    if args.transform:
+        logger.info(f'Using transform')
+        scaler = StandardScaler()
+        X_train = scaler.fit_transform(X_train)
+        X_val = scaler.transform(X_val)
+        X_test = scaler.transform(X_test)
     model.fit(X_train, y_train)
 
-    Path(config.model.save_dir).mkdir(parents=True, exist_ok=True)   
-    save_path = osp.join(config.model.save_dir, f'{config.model.task_type}_{config.model.model_type}.pkl')
+    Path(args.output_dir).mkdir(parents=True, exist_ok=True)   
+    save_path = osp.join(args.output_dir, f'{config.model.task_type}_{config.model.model_type}_{args.val_split}.pkl')
     joblib.dump(model, save_path)
+    if args.transform:
+        scaler_path = osp.join(args.output_dir, f'{config.model.task_type}_{config.model.model_type}_{args.val_split}_scaler.pkl')
+        joblib.dump(scaler, scaler_path)
     # model = joblib.load(save_path)
     eval(config.model.task_type, model, X_train, y_train, X_val, y_val, X_test, y_test, save_path=save_path)
 
@@ -214,8 +224,10 @@ def main(config, args):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
+    parser.add_argument('--output_dir', default='results/baseline')
     parser.add_argument('--config', default='baseline/config.yaml')
     parser.add_argument('--val_split', type=int, default=1, help='the split index of validation set, 1-5')
+    parser.add_argument('--transform', type=bool, default=False, help='whether to use transform')
 
     args = parser.parse_args()
     config = parse_config(args.config)

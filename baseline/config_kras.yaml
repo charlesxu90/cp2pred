@@ -6,6 +6,6 @@ data:
 
 model:
   task_type: regression   # regression, classification
-  model_type: rf     # xgboost, rf
+  model_type: xgboost     # xgboost, rf
   save_results: true
   save_dir: results/baseline

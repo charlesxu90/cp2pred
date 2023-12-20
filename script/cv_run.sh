@@ -54,8 +54,8 @@
 # done
 
 ## Graph ViT
-i=2
-nohup python -m graph_vit.train --config graph_vit/config_kras.yaml --output_dir results/graph_vit/kras_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_reg_$i.log &
+# i=2
+# nohup python -m graph_vit.train --config graph_vit/config_kras.yaml --output_dir results/graph_vit/kras_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_reg_$i.log &
 
 # for i in {2..5};
 # do
