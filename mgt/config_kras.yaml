@@ -12,7 +12,7 @@ data:
   target_col: 'score'
 
 model:
-  device: cuda:0
+  device: cuda:1
   pe_name: wave
   num_layer: 2
   num_head: 4
@@ -31,7 +31,7 @@ model:
   seed: 1
 
 train:  # Training params
-  device: 'cuda:0'                    # device to use for training
+  device: 'cuda:1'                    # device to use for training
   max_epochs: 200                  # *total number of epochs, 200
   task_type: regression             # task type, 'classification' or 'regression'
   learning_rate: 0.001              # *learning rate
