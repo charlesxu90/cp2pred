@@ -1,0 +1,38 @@
+data: 
+  metis:
+    n_patches: 32           # The number of partitions
+    drop_rate: 0.3          # ratio to randomly drop a set of edges before each metis partition
+    num_hops: 2             # expanding patches with k hop neighbourhood
+
+  pos_enc:
+    rw_dim: 16               # Random walk structural encoding for node encoding
+    patch_rw_dim: 8          # Patch random walk structural encoding
+    patch_num_diff: -1       # Patch PE diffusion steps
+
+  root: 'data/kras_kd/'   # data folder, contain two files: train.csv and val.csv
+  smiles_col: 'smi'           # smi
+  target_col: 'score'
+
+  batch_size: 128              # 
+  num_workers: 4               # number of workers for data loading
+
+model:
+  graphvit:
+    hidden_size: 128
+    nlayer_gnn: 4
+    mixer_type: mlp
+    nlayer_mixer: 2
+    pooling: 'mean'
+    residual: true
+    dropout: 0.
+    mixer_dropout: 0.5
+
+train:  # Training params
+  device: 'cuda'                    # device to use for training
+  max_epochs: 200                   # *total number of epochs, 200
+  task_type: regression             # task type, 'classification' or 'regression'
+  learning_rate: 0.001              # *learning rate
+  lr_patience: 20
+  lr_decay: 0.5
+  min_lr: 1e-5
+  weight_decay: 0.

@@ -79,7 +79,6 @@ class TaskTrainer:
                 with torch.autocast(device_type=self.device, dtype=torch.float16, enabled=self.use_amp):
                     loss, _, _ = self.run_forward(model, batch)
                     loss = loss.mean()  # collapse all losses if they are scattered on multiple gpus
-                    losses.append(loss.item())
             else:
                 loss, _, _ = self.run_forward(model, batch)
             losses.append(loss.item())
