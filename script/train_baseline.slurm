@@ -13,4 +13,4 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
 i=1
-python -m baseline.train --config baseline/config_kras_kd.yaml --val_split $i --transform true --output_dir results/baseline/kras_kd_$i
+python -m baseline.train --config baseline/config_kras_kd.yaml --val_split $i --output_dir results/baseline/kras_kd_$i
