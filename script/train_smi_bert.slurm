@@ -3,8 +3,8 @@
 #SBATCH --gpus-per-node=2
 #SBATCH --cpus-per-gpu=2
 #SBATCH --mem=64G
-#SBATCH --constraint="a100"
-#SBATCH --time=24:00:00
+#SBATCH --constraint="v100"
+#SBATCH --time=4:00:00
 #SBATCH --partition=batch
 #SBATCH --output=log-%x-%j.out
 #SBATCH --error=log-%x-%j.out
@@ -26,4 +26,5 @@ conda activate /ibex/user/xux/pep-pred/env
 # torchrun --nproc_per_node=2 -m seq_bert.task_finetune --config seq_bert/smi_bert_cls_task_finetune.yaml --output_dir results/smi_bert/smi_bert_cls_task_finetune --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt
 
 i=1
-torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/kras_config_reg.yaml --output_dir results/smi_bert/kras_reg_$i --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt --val_split $i
+echo "split = $i in smil_bert"
+torchrun --nproc_per_node=2 -m smi_bert.task_finetune --config smi_bert/kras_kd_reg.yaml --output_dir results/smi_bert/kras_kd_$i --ckpt results/smi_bert/smi_bert_finetune/model_19_0.223.pt --val_split $i
