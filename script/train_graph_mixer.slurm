@@ -10,11 +10,14 @@
 #SBATCH --constraint="v100"
 
 module purge
-module load gcc/11.1.0
+module load gcc
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate /ibex/user/xux/pep-pred/env
+conda activate /home/xux/work/cp2pred/env
 
 # python -m graph_vit.pretrain_graphvit_cl --config graph_vit/pretrain_graphvit_cl.yaml --output_dir results/graph_vit/pretrain_graphvit_cl
 
-python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune
-# python -m graph_vit.task_finetune --config graph_vit/task_finetune.yaml --output_dir results/graph_vit/task_finetune --ckpt_cl results/graph_vit/pretrain_graphvit_cl/model_10_0.229.pt
+rm -rf data/kras_kd/processed/*.pt
+for i in {1..5};
+do
+nohup python -m graph_vit.train --config graph_vit/config_kras_kd.yaml --output_dir results/graph_vit/kras_kd_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_kd_reg_$i.log &
+done
