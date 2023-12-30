@@ -18,4 +18,4 @@ conda activate /ibex/user/xux/pep-pred/env
 
 rm -rf data/kras_kd/processed/*.pt
 i=1
-python -m gine.task_finetune --config gine/config_kras_kd.yaml --output_dir results/gine/kras_kd_$i --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split 1
+python -m grit.train --config grit/config_kras_kd.yaml --output_dir results/grit/kras_kd_reg_$i --val_split $i
