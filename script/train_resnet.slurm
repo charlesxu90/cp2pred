@@ -10,7 +10,7 @@
 #SBATCH --error=log-%x-%j.out
 
 module purge
-module load gcc/11.1.0
+module load gcc
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate /ibex/user/xux/pep-pred/env
 
@@ -22,4 +22,4 @@ conda activate /ibex/user/xux/pep-pred/env
 
 i=1
 echo "split = $i in image_mol"
-torchrun --nproc_per_node=2 -m image_mol.train --config config_kras_kd.yaml --output_dir results/resnet/kras_kd_$i --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt --val_split $i
+torchrun --nproc_per_node=2 -m image_mol.train --config image_mol/config_kras_kd.yaml --output_dir results/resnet/kras_kd_$i --ckpt_cl results/resnet/pretrain_resnet_ibex_imgnet_init/model_100_0.027.pt --val_split $i
