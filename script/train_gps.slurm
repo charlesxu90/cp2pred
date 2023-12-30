@@ -18,4 +18,4 @@ conda activate /ibex/user/xux/pep-pred/env
 
 rm -rf data/kras_kd/processed/*.pt
 i=1
-python -m gine.task_finetune --config gine/config_kras_kd.yaml --output_dir results/gine/kras_kd_$i --ckpt_pretrain  results/gine/pretrain_graphpred/model_final_0.692.pt --val_split $i
+python -m gps.train --config gps/config_kras_kd.yaml --output_dir results/gps/kras_kd_$i --val_split $i
