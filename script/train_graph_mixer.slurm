@@ -17,7 +17,5 @@ conda activate /home/xux/work/cp2pred/env
 # python -m graph_vit.pretrain_graphvit_cl --config graph_vit/pretrain_graphvit_cl.yaml --output_dir results/graph_vit/pretrain_graphvit_cl
 
 rm -rf data/kras_kd/processed/*.pt
-for i in {1..5};
-do
-nohup python -m graph_vit.train --config graph_vit/config_kras_kd.yaml --output_dir results/graph_vit/kras_kd_reg_$i --val_split $i 2>&1 >results/graph_vit/kras_kd_reg_$i.log &
-done
+$i=1
+python -m graph_vit.train --config graph_vit/config_kras_kd.yaml --output_dir results/graph_vit/kras_kd_reg_$i --val_split $i
